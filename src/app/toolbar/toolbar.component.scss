@@ -1,0 +1,39 @@
+// toolbar.component.scss
+.floating-toolbar {
+  position: fixed;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  z-index: 1000;
+  display: flex;
+  gap: 4px;
+  transition: all 0.1s ease;
+  border: 1px solid #e8ecef;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 4px;
+}
+
+.toolbar-button {
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #292d34;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: #f0f3f5;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}

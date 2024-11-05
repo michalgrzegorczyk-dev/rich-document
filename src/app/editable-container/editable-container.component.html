@@ -1,0 +1,15 @@
+<div class="editable-container">
+  <div
+    *ngFor="let block of blocks; let i = index"
+    [attr.contenteditable]="true"
+    (keydown)="onKeyDown($event, i)"
+    (mouseup)="onMouseUp($event)"
+    (click)="onClick($event)"
+    (paste)="onPaste($event, i)"
+    class="editable-div"
+    #editableDiv>
+  </div>
+</div>
+
+@let index = blocks.length;
+<button (click)="createBlock(index)">Add New Block</button>
