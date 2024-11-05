@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router';
 import { NgForOf, CommonModule } from '@angular/common';
 import { ToolbarComponent } from './toolbar/toolbar.component';
 import { EditableContainerComponent } from './editable-container/editable-container.component';
+import { ToolbarStateService } from './toolbar.service';
 
 interface ToolbarState {
   show: boolean;
@@ -35,9 +36,11 @@ export class AppComponent {
 
   constructor(
     private cdr: ChangeDetectorRef,
+    public toolbarStateService: ToolbarStateService
   ) {}
 
   toolbarAction(event: {type: string, value: string}) {
+
     console.log(`Toolbar action: ${event.type} - ${event.value}`); // General log for any toolbar action
     switch (event.type) {
       case 'format':

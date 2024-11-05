@@ -4,6 +4,6 @@
 <p>Description: This is description.</p>
 <p>Author: Michal Grzegorczyk</p>
 
-<app-toolbar [state]="toolbarState" (action)="toolbarAction($event)" />
+<app-toolbar [state]="toolbarStateService.state$ | async"  (action)="toolbarAction($event)" />
 <app-editable-container (edit)="handleEdit($event)"
                         (toolbarStateChange)="updateToolbar($event)" />

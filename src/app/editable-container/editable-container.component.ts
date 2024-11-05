@@ -16,6 +16,7 @@ import { SelectionService } from '../services/selection.service';
 import { BlockService } from '../services/block.service';
 import { ContentRendererService } from '../services/content-renderer.service';
 import { Block, BlockEvent } from '../models/block.models';
+import { ToolbarStateService } from '../toolbar.service';
 
 @Component({
   selector: 'app-editable-container',
@@ -40,7 +41,8 @@ export class EditableContainerComponent implements AfterViewInit, OnDestroy {
     rendererFactory: RendererFactory2,
     private blockService: BlockService,
     private contentRenderer: ContentRendererService,
-    private selectionService: SelectionService
+    private selectionService: SelectionService,
+    private toolbarStateService: ToolbarStateService
   ) {
     this.renderer = rendererFactory.createRenderer(null, null);
     this.blocks = [this.blockService.createBlock()];
@@ -50,7 +52,7 @@ export class EditableContainerComponent implements AfterViewInit, OnDestroy {
   private initializeClickOutsideListener(): void {
     this.clickOutsideListener = this.renderer.listen('document', 'click', (event: MouseEvent) => {
       if (!this.isClickInside(event.target as Element)) {
-        this.hideToolbar();
+        this.toolbarStateService.hideToolbar();
       }
     });
   }
@@ -193,13 +195,15 @@ export class EditableContainerComponent implements AfterViewInit, OnDestroy {
   private handleImageClick(image: HTMLImageElement) {
     this.updateSelectedElement(image);
     const rect = this.selectionService.getElementRect(image);
-    this.showToolbar(rect, 'image');
+    const position = this.selectionService.adjustToolbarPosition(rect);
+    this.toolbarStateService.showImageToolbar(position);
   }
 
   private handleCodeClick(codeBlock: HTMLElement) {
     this.updateSelectedElement(codeBlock);
     const rect = this.selectionService.getElementRect(codeBlock);
-    this.showToolbar(rect, 'code');
+    const position = this.selectionService.adjustToolbarPosition(rect);
+    this.toolbarStateService.showCodeToolbar(position);
   }
 
   private updateSelectedElement(element: HTMLElement) {
@@ -211,28 +215,8 @@ export class EditableContainerComponent implements AfterViewInit, OnDestroy {
   }
 
   private showTextToolbar(rect: DOMRect) {
-    this.showToolbar(rect, 'text');
-  }
-
-  private showToolbar(rect: DOMRect, type: 'text' | 'image' | 'code') {
     const position = this.selectionService.adjustToolbarPosition(rect);
-    this.toolbarStateChange.emit({
-      show: true,
-      isTextSelection: type === 'text',
-      isImageSelected: type === 'image',
-      isCodeBlock: type === 'code',
-      position
-    });
-  }
-
-  private hideToolbar() {
-    this.toolbarStateChange.emit({
-      show: false,
-      isTextSelection: false,
-      isImageSelected: false,
-      isCodeBlock: false,
-      position: { top: 0, left: 0 }
-    });
+    this.toolbarStateService.showTextToolbar(position);
   }
 
   ngOnDestroy() {
