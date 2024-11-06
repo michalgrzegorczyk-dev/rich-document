@@ -6,7 +6,6 @@ import { ToolbarComponent } from '../../ui/toolbar/toolbar.component';
 import { ToolbarManager } from '../../ui/toolbar/toolbar-manager';
 import { BlockStore } from '../../data-access/block.store';
 import { KeyboardService } from '../../util/keyboard/keyboard.service';
-import { ToolbarStateService } from '../../ui/toolbar/toolbar.service';
 import { DomHelper } from '../../util/dom/dom-helper';
 
 const COMPONENTS = [HeaderComponent, ToolbarComponent, EditorComponent, EditorComponent];

@@ -10,10 +10,10 @@ import {
   inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BlockEvent } from '../../data-access/block.models';
 import { BlockStore } from '../../data-access/block.store';
 import { filter } from 'rxjs';
 import { DomHelper } from '../../util/dom/dom-helper';
+import { BlockEvent } from './editor.models';
 
 export const EDITOR_SELECTORS = {
   EDITABLE: '.editable-div',

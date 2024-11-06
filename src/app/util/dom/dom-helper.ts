@@ -1,55 +1,39 @@
 import { Injectable, inject, QueryList, ElementRef } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { DOCUMENT } from '@angular/common';
-
-export interface FocusOptions {
-  position?: 'start' | 'end' | number;
-  scroll?: boolean;
-  index?: number;
-}
-
-export interface Position {
-  top: number;
-  left: number;
-}
-
-export interface ToolbarDimensions {
-  width: number;
-  height: number;
-  padding: number;
-}
-
+import { ToolbarDimensions } from './dom.models';
+import { Position } from '../../ui/toolbar/toolbar.models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DomHelper {
-  document = inject(DOCUMENT);
-  private readonly focusState = new BehaviorSubject<FocusOptions | null>(null);
-  private readonly pendingFocus = new BehaviorSubject<number | null>(null);
-  private editableDivRefs?: QueryList<ElementRef<HTMLDivElement>>;
+  readonly #document = inject(DOCUMENT);
+  readonly #focusState = new BehaviorSubject<any>(null);
+  readonly #pendingFocus = new BehaviorSubject<number | null>(null);
+  #editableDivRefs?: QueryList<ElementRef<HTMLDivElement>>;
 
   setEditableDivRefs(refs: QueryList<ElementRef<HTMLDivElement>>): void {
-    this.editableDivRefs = refs;
+    this.#editableDivRefs = refs;
   }
 
-  requestFocus(index: number, options: FocusOptions = {}): void {
-    if (!this.editableDivRefs || !this.canFocusImmediately(index)) {
-      this.pendingFocus.next(index);
+  requestFocus(index: number, options: any = {}): void {
+    if (!this.#editableDivRefs || !this.canFocusImmediately(index)) {
+      this.#pendingFocus.next(index);
       return;
     }
     this.focusBlock(index, options);
   }
 
   hasPendingFocus(): boolean {
-    return this.pendingFocus.value !== null;
+    return this.#pendingFocus.value !== null;
   }
 
   getPendingIndex(): number | null {
-    return this.pendingFocus.value;
+    return this.#pendingFocus.value;
   }
 
-  focusBlock(index: number, options: FocusOptions = {}): boolean {
+  focusBlock(index: number, options: any = {}): boolean {
     const element = this.getBlockElement(index);
     if (!element) return false;
 
@@ -64,7 +48,7 @@ export class DomHelper {
       if (scroll) {
         this.scrollIntoView(element);
       }
-      this.focusState.next({ position, index });
+      this.#focusState.next({ position, index });
       this.clearPending();
 
       return true;
@@ -94,29 +78,29 @@ export class DomHelper {
   }
 
   private getBlockElement(index: number): HTMLDivElement | null {
-    if (!this.editableDivRefs || !this.isValidIndex(index)) return null;
-    return this.editableDivRefs.get(index)?.nativeElement ?? null;
+    if (!this.#editableDivRefs || !this.isValidIndex(index)) return null;
+    return this.#editableDivRefs.get(index)?.nativeElement ?? null;
   }
 
   private isValidIndex(index: number): boolean {
     return Boolean(
-      this.editableDivRefs &&
+      this.#editableDivRefs &&
       Number.isInteger(index) &&
       index >= 0 &&
-      index < this.editableDivRefs.length
+      index < this.#editableDivRefs.length
     );
   }
 
   private canFocusImmediately(index: number): boolean {
     return Boolean(
-      this.editableDivRefs &&
+      this.#editableDivRefs &&
       this.isValidIndex(index) &&
       this.getBlockElement(index)
     );
   }
 
   private clearPending(): void {
-    this.pendingFocus.next(null);
+    this.#pendingFocus.next(null);
   }
 
   getViewportSize() {
@@ -131,7 +115,7 @@ export class DomHelper {
   }
 
   setSelection(element: HTMLElement, position: 'start' | 'end' | number = 'end'): void {
-    const range = this.document.createRange();
+    const range = this.#document.createRange();
     const selection = window.getSelection();
 
     if (position === 'start') {

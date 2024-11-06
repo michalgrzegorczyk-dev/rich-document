@@ -5,9 +5,3 @@ export interface Block {
   type: BlockType;
   content: string;
 }
-
-export interface BlockEvent {
-  type: BlockType;
-  content: string;
-  index: number;
-}

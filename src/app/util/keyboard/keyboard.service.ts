@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Subject } from 'rxjs';
-import { KeyHandler } from './keyboard-handler.models';
+import { KeyHandler } from './keyboard.models';
 
 @Injectable({
   providedIn: 'root'
