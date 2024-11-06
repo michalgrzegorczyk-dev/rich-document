@@ -10,10 +10,10 @@ import {
   inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { BlockEvent } from '../../models/block.models';
-import { BlockStore } from '../../services/block.store';
+import { BlockEvent } from '../../data-access/block.models';
+import { BlockStore } from '../../data-access/block.store';
 import { filter } from 'rxjs';
-import { FocusManager } from '../../services/focus-manager';
+import { DomHelper } from '../../util/dom/dom-helper';
 
 export const EDITOR_SELECTORS = {
   EDITABLE: '.editable-div',
@@ -28,43 +28,47 @@ export const EDITOR_SELECTORS = {
   styleUrls: ['./editor.component.scss']
 })
 export class EditorComponent implements AfterViewInit, OnInit {
-  @ViewChildren('editableDiv') editableDivRefs!: QueryList<ElementRef>;
+  @ViewChildren('editableDiv')
+  editableDivRefs!: QueryList<ElementRef>;
 
-  @Output() edit = new EventEmitter<BlockEvent>();
-  @Output() blockAction = new EventEmitter<{ type: string; blockId: string; data?: any; }>();
+  @Output()
+  edit = new EventEmitter<BlockEvent>();
+
+  @Output()
+  editorAction = new EventEmitter<{ type: string; blockId: string; data?: any; }>();
 
   readonly blockStore = inject(BlockStore);
-  readonly focusManager = inject(FocusManager);
+  readonly #domHelper = inject(DomHelper);
 
-  blocks = this.blockStore.blocks;
+  readonly blocks = this.blockStore.blocks;
 
   ngOnInit(): void {
     this.blockStore.createBlock();
-
-    this.focusManager.setEditableDivRefs(this.editableDivRefs);}
+    this.#domHelper.setEditableDivRefs(this.editableDivRefs);
+  }
 
   ngAfterViewInit(): void {
-    this.focusManager.setEditableDivRefs(this.editableDivRefs);
+    this.#domHelper.setEditableDivRefs(this.editableDivRefs);
 
     this.editableDivRefs.changes
       .pipe(
-        filter(() => this.focusManager.hasPendingFocus())
+        filter(() => this.#domHelper.hasPendingFocus())
       )
       .subscribe(() => {
-        this.focusManager.setEditableDivRefs(this.editableDivRefs);
-        const index = this.focusManager.getPendingIndex();
+        this.#domHelper.setEditableDivRefs(this.editableDivRefs);
+        const index = this.#domHelper.getPendingIndex();
         if (index !== null) {
-          this.focusManager.focusBlock(index);
+          this.#domHelper.focusBlock(index);
         }
       });
   }
 
   createBlock(): void {
-    this.blockAction.emit({ type: 'create', blockId: '', data: null });
+    this.editorAction.emit({ type: 'create', blockId: '', data: null });
   }
 
   onKeyDown(event: KeyboardEvent, index: number): void {
-    this.blockAction.emit({ type: 'keydown', blockId: '', data: { event, index } });
+    this.editorAction.emit({ type: 'keydown', blockId: '', data: { event, index } });
   }
 
   onClick(event: MouseEvent) {
@@ -73,7 +77,7 @@ export class EditorComponent implements AfterViewInit, OnInit {
 
     if(editableDiv) {
       console.log('Editable Div ID:', editableDiv['id']);
-      this.blockAction.emit({ type: 'click', blockId: editableDiv['id'], data: event.target});
+      this.editorAction.emit({ type: 'click', blockId: editableDiv['id'], data: event.target});
     }
   }
 }

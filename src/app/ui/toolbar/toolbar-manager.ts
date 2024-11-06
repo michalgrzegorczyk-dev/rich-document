@@ -1,13 +1,13 @@
 import { ToolbarStateService } from './toolbar.service';
 import { Injectable, inject } from '@angular/core';
-import { ElementInteractionService } from './element-interaction.service';
+import { DomHelper } from '../../util/dom/dom-helper';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ToolbarManager {
-  readonly #elementInteraction = inject(ElementInteractionService);
   readonly #toolbarStateService = inject(ToolbarStateService);
+  readonly #domHelper = inject(DomHelper);
 
   handleClick(target: HTMLElement): void {
     if (target.tagName === 'IMG') {
@@ -21,23 +21,23 @@ export class ToolbarManager {
   }
 
   private handleImageClick(image: HTMLImageElement) {
-    this.#elementInteraction.unsetSelection();
-    const rect = this.#elementInteraction.getElementBounds(image);
-    const position = this.#elementInteraction.adjustToolbarPosition(rect);
+    this.#domHelper.unsetSelection();
+    const rect = this.#domHelper.getElementBounds(image);
+    const position = this.#domHelper.adjustToolbarPosition(rect);
     this.#toolbarStateService.showImageToolbar(position);
   }
 
   private handleCodeClick(codeBlock: HTMLElement) {
-    const rect = this.#elementInteraction.getElementBounds(codeBlock);
-    const position = this.#elementInteraction.adjustToolbarPosition(rect);
+    const rect = this.#domHelper.getElementBounds(codeBlock);
+    const position = this.#domHelper.adjustToolbarPosition(rect);
     this.#toolbarStateService.showCodeToolbar(position);
   }
 
   private handleTextSelection() {
-    if (this.#elementInteraction.hasTextSelection()) {
-      const selectionInfo = this.#elementInteraction.getSelectionInfo();
+    if (this.#domHelper.hasTextSelection()) {
+      const selectionInfo = this.#domHelper.getSelectionInfo();
       if (selectionInfo) {
-        const position = this.#elementInteraction.adjustToolbarPosition(selectionInfo.rect);
+        const position = this.#domHelper.adjustToolbarPosition(selectionInfo.rect);
         this.#toolbarStateService.showTextToolbar(position);
       }
     }

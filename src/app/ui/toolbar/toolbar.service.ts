@@ -1,7 +1,7 @@
 import { Injectable, NgZone, inject } from '@angular/core';
 import { BehaviorSubject, fromEvent, filter } from 'rxjs';
-import { ToolbarState } from '../models/toolbar.models';
-import { EDITOR_SELECTORS } from '../components/editor/editor.component';
+import { ToolbarState } from './toolbar.models';
+import { EDITOR_SELECTORS } from '../../feature/editor/editor.component';
 
 const initialToolbarState: ToolbarState = {
   show: false,

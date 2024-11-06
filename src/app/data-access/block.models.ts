@@ -1,4 +1,4 @@
-import { BlockType } from './types';
+export type BlockType = 'text' | 'image' | 'code';
 
 export interface Block {
   id: number;

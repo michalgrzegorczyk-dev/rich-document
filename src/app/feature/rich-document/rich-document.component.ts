@@ -1,13 +1,13 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { AsyncPipe, NgForOf } from '@angular/common';
 import { EditorComponent } from '../editor/editor.component';
-import { HeaderComponent } from '../header/header.component';
-import { ToolbarComponent } from '../toolbar/toolbar.component';
-import { ToolbarManager } from '../../services/toolbar-manager';
-import { BlockStore } from '../../services/block.store';
-import { KeyboardService } from '../../utils/keyboard/keyboard.service';
-import { FocusManager } from '../../services/focus-manager';
-import { ToolbarStateService } from '../../services/toolbar.service';
+import { HeaderComponent } from '../../ui/header/header.component';
+import { ToolbarComponent } from '../../ui/toolbar/toolbar.component';
+import { ToolbarManager } from '../../ui/toolbar/toolbar-manager';
+import { BlockStore } from '../../data-access/block.store';
+import { KeyboardService } from '../../util/keyboard/keyboard.service';
+import { ToolbarStateService } from '../../ui/toolbar/toolbar.service';
+import { DomHelper } from '../../util/dom/dom-helper';
 
 const COMPONENTS = [HeaderComponent, ToolbarComponent, EditorComponent, EditorComponent];
 const DIRECTIVES = [NgForOf, AsyncPipe];
@@ -20,26 +20,25 @@ const DIRECTIVES = [NgForOf, AsyncPipe];
   standalone: true
 })
 export class RichDocumentComponent implements OnInit {
-  toolbarStateService = inject(ToolbarStateService);
   readonly #blockService = inject(BlockStore);
   readonly #keyboardManager = inject(KeyboardService);
   readonly #toolbarManager = inject(ToolbarManager);
-  readonly #focusManager = inject(FocusManager);
+  readonly #domHelper = inject(DomHelper);
 
   ngOnInit(): void {
     this.#keyboardManager.enterPressed$.subscribe((index) => {
       this.#blockService.createBlock();
-      this.#focusManager.requestFocus(index + 1);
+      this.#domHelper.requestFocus(index + 1);
     });
 
     this.#keyboardManager.backspacePressed$.subscribe((index) => {
       // todo check if there is text
       this.#blockService.removeBlock(index);
-      this.#focusManager.requestFocus(index - 1);
+      this.#domHelper.requestFocus(index - 1);
     });
   }
 
-  toolbarAction(event: { type: string, value: string }) {
+  onToolbarAction(event: { type: string, value: string }) {
     console.log(`Toolbar action: ${event.type} - ${event.value}`);
     switch (event.type) {
       case 'format':
@@ -54,7 +53,7 @@ export class RichDocumentComponent implements OnInit {
     }
   }
 
-  protected onBlockAction(event: { type: string, blockId: string, data?: any }) {
+  protected onEditorAction(event: { type: string, blockId: string, data?: any }) {
     switch (event.type) {
       case 'click':
         this.#toolbarManager.handleClick(event.data as HTMLElement);

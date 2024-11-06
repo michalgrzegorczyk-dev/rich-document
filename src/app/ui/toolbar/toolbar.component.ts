@@ -1,7 +1,7 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
+import { Component, Output, EventEmitter, ChangeDetectorRef, inject } from '@angular/core';
 import { NgIf, AsyncPipe } from '@angular/common';
-import { ToolbarState } from '../../models/toolbar.models';
-import { ToolbarStateService } from '../../services/toolbar.service';
+import { ToolbarState } from './toolbar.models';
+import { ToolbarStateService } from './toolbar.service';
 
 @Component({
   selector: 'app-toolbar',
@@ -11,15 +11,11 @@ import { ToolbarStateService } from '../../services/toolbar.service';
   standalone: true
 })
 export class ToolbarComponent {
-  @Input() state!: ToolbarState | null;
-  @Output() action = new EventEmitter<{type: string, value: string}>();
+  @Output() toolbarAction = new EventEmitter<{type: string, value: string}>();
 
-
-  constructor(
-    public toolbarStateService: ToolbarStateService,
-    public cdr: ChangeDetectorRef
-  ) {
-  }
+  toolbarStateService = inject(ToolbarStateService);
+  cdr = inject(ChangeDetectorRef);
+  state$ = this.toolbarStateService.state$;
 
   selectedImageElement: HTMLImageElement | null = null;
 
@@ -34,10 +30,10 @@ export class ToolbarComponent {
 
   handleAction(type: string, value: string) {
     console.log(`Toolbar action: ${type} - ${value}`);
-    this.toolbarAction({ type, value });
+    this.toolbarActionx({ type, value });
   }
 
-  toolbarAction(event: {type: string, value: string}) {
+  toolbarActionx(event: {type: string, value: string}) {
 
     console.log(`Toolbar action: ${event.type} - ${event.value}`); // General log for any toolbar action
     switch (event.type) {

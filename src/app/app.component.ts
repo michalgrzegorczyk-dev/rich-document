@@ -1,14 +1,17 @@
 import { Component } from '@angular/core';
-import { RichDocumentComponent } from './components/rich-document/rich-document.component';
+import { RichDocumentComponent } from './feature/rich-document/rich-document.component';
 
 @Component({
   standalone: true,
   imports: [RichDocumentComponent],
   selector: 'app-root',
-  template: `
-    <h1>Rich Document Demo</h1>
-    <app-rich-document />
-  `,
+  template: '<app-rich-document />',
+  styles: [`
+      :host {
+          padding: 50px;
+          display: block;
+      }
+  `]
 })
 export class AppComponent {
 }
