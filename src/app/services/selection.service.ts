@@ -62,4 +62,8 @@ export class SelectionService {
       selection.addRange(range);
     }
   }
+
+  unsetSelection() {
+    window.getSelection()?.removeAllRanges();
+  }
 }

@@ -1,26 +1,26 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
-import { NgIf, AsyncPipe } from '@angular/common';
+import { Component, ChangeDetectorRef } from '@angular/core';
+import { AsyncPipe, NgForOf, CommonModule } from '@angular/common';
+import { EditableContainerComponent } from '../editable-container/editable-container.component';
+import { HeaderComponent } from '../header/header.component';
+import { ToolbarComponent } from '../toolbar/toolbar.component';
 import { ToolbarState } from '../../models/toolbar.models';
 import { ToolbarStateService } from '../../services/toolbar.service';
+import { RouterModule } from '@angular/router';
 
 @Component({
-  selector: 'app-toolbar',
-  templateUrl: './toolbar.component.html',
-  styleUrls: ['./toolbar.component.scss'],
-  imports: [NgIf, AsyncPipe],
+  selector: 'app-rich-document',
+  templateUrl: './rich-document.component.html',
+  styleUrls: ['./rich-document.component.scss'],
+  imports: [
+    RouterModule, NgForOf, CommonModule, HeaderComponent, ToolbarComponent, EditableContainerComponent,
+    AsyncPipe,
+    EditableContainerComponent,
+    HeaderComponent,
+    ToolbarComponent
+  ],
   standalone: true
 })
-export class ToolbarComponent {
-  @Input() state!: ToolbarState | null;
-  @Output() action = new EventEmitter<{type: string, value: string}>();
-
-
-  constructor(
-    public toolbarStateService: ToolbarStateService,
-    public cdr: ChangeDetectorRef
-  ) {
-  }
-
+export class RichDocumentComponent {
   selectedImageElement: HTMLImageElement | null = null;
 
   toolbarState: ToolbarState = {
@@ -31,11 +31,10 @@ export class ToolbarComponent {
     position: { top: 0, left: 0 }
   };
 
-
-  handleAction(type: string, value: string) {
-    console.log(`Toolbar action: ${type} - ${value}`);
-    this.toolbarAction({ type, value });
-  }
+  constructor(
+    private cdr: ChangeDetectorRef,
+    public toolbarStateService: ToolbarStateService
+  ) {}
 
   toolbarAction(event: {type: string, value: string}) {
 
@@ -53,24 +52,12 @@ export class ToolbarComponent {
     }
   }
 
-
   formatText(format: 'bold' | 'italic') {
     document.execCommand(format, false);
   }
 
   private handleCodeOptions(value: string) {
 
-  }
-
-
-
-  private handleImageOptions(value: string): void {
-    console.log("Image options clicked:", value);
-    if (this.selectedImageElement) {
-      this.showImageEditingToolbar(this.selectedImageElement);
-    } else {
-      console.log("No image is selected when trying to access image options.");
-    }
   }
 
   private showImageEditingToolbar(imageElement: HTMLImageElement): void {
@@ -86,5 +73,12 @@ export class ToolbarComponent {
     };
     this.cdr.detectChanges();
   }
-
+  private handleImageOptions(value: string): void {
+    console.log("Image options clicked:", value);
+    if (this.selectedImageElement) {
+      this.showImageEditingToolbar(this.selectedImageElement);
+    } else {
+      console.log("No image is selected when trying to access image options.");
+    }
+  }
 }

@@ -1,5 +1,0 @@
-<h1>Rich Document</h1>
-
-<app-header />
-<app-toolbar [state]="toolbarStateService.state$ | async"  (action)="toolbarAction($event)" />
-<app-editable-container (edit)="handleEdit($event)" (toolbarStateChange)="updateToolbar($event)" />
