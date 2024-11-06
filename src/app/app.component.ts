@@ -4,21 +4,23 @@ import {
 } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { NgForOf, CommonModule } from '@angular/common';
-import { ToolbarComponent } from './toolbar/toolbar.component';
-import { EditableContainerComponent } from './editable-container/editable-container.component';
-import { ToolbarStateService } from './toolbar.service';
+import { ToolbarStateService } from './services/toolbar.service';
+import { HeaderComponent } from './components/header/header.component';
+import { ToolbarComponent } from './components/toolbar/toolbar.component';
+import { EditableContainerComponent } from './components/editable-container/editable-container.component';
+import { ToolbarState } from './models/toolbar.models';
 
-interface ToolbarState {
-  show: boolean;
-  isTextSelection: boolean;
-  isImageSelected: boolean;
-  isCodeBlock: boolean;
-  position: { top: number; left: number };
-}
+// interface ToolbarState {
+//   show: boolean;
+//   isTextSelection: boolean;
+//   isImageSelected: boolean;
+//   isCodeBlock: boolean;
+//   position: { top: number; left: number };
+// }
 
 @Component({
   standalone: true,
-  imports: [RouterModule, NgForOf, CommonModule, ToolbarComponent, EditableContainerComponent],
+  imports: [RouterModule, NgForOf, CommonModule, HeaderComponent, ToolbarComponent, EditableContainerComponent],
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']

@@ -11,12 +11,12 @@ import {
   OnDestroy, RendererFactory2
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ToolbarState } from '../models/toolbar.models';
-import { SelectionService } from '../services/selection.service';
-import { BlockService } from '../services/block.service';
-import { ContentRendererService } from '../services/content-renderer.service';
-import { Block, BlockEvent } from '../models/block.models';
-import { ToolbarStateService } from '../toolbar.service';
+import { BlockEvent, Block } from '../../models/block.models';
+import { ToolbarState } from '../../models/toolbar.models';
+import { BlockService } from '../../services/block.service';
+import { ToolbarStateService } from '../../services/toolbar.service';
+import { ContentRendererService } from '../../services/content-renderer.service';
+import { SelectionService } from '../../services/selection.service';
 
 @Component({
   selector: 'app-editable-container',

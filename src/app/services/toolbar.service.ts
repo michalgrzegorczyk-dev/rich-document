@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { ToolbarState } from './models/toolbar.models';
+import { ToolbarState } from '../models/toolbar.models';
 
 const initialToolbarState: ToolbarState = {
   show: false,

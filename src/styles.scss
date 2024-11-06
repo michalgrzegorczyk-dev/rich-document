@@ -1,1 +1,26 @@
-/* You can add global styles to this file, and also import other style files */
+html {
+  font-family: system-ui;
+}
+
+h1 {
+  font-size: 26px;
+  font-weight: 600;
+  color: #292d34;
+  margin: 0 0 24px 0;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: 500;
+  color: #292d34;
+  margin: 0 0 16px 0;
+}
+
+p {
+  font-size: 14px;
+  color: #292d34;
+}
+
+.code-block {
+  background: red;
+}

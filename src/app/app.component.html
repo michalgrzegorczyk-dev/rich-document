@@ -1,9 +1,5 @@
 <h1>Rich Document</h1>
 
-<h2>Title</h2>
-<p>Description: This is description.</p>
-<p>Author: Michal Grzegorczyk</p>
-
+<app-header />
 <app-toolbar [state]="toolbarStateService.state$ | async"  (action)="toolbarAction($event)" />
-<app-editable-container (edit)="handleEdit($event)"
-                        (toolbarStateChange)="updateToolbar($event)" />
+<app-editable-container (edit)="handleEdit($event)" (toolbarStateChange)="updateToolbar($event)" />
