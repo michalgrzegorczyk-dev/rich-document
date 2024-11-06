@@ -1,6 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { NgIf, AsyncPipe } from '@angular/common';
-import { ToolbarStateService } from '../../services/toolbar.service';
 import { ToolbarState } from '../../models/toolbar.models';
 
 @Component({
