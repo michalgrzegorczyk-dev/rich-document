@@ -10,4 +10,10 @@
   </div>
 </div>
 
-<button (click)="createBlock()">Add New Block</button>
+
+<div class="ez1">
+  <div [attr.contenteditable]="true"
+       (click)="createBlock()"
+       class="editable-div ez2">
+  </div>
+</div>

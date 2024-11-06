@@ -1,68 +1,67 @@
 import { Injectable } from '@angular/core';
+import { DOMInteractionService, Position, ToolbarDimensions } from './dom-interaction.service';
 
-@Injectable({
-  providedIn: 'root'
-})
-export class ElementInteractionService {
-  getSelectionInfo(): { range: Range, rect: DOMRect } | null {
+@Injectable({ providedIn: 'root' })
+export class ElementInteractionService extends DOMInteractionService {
+  private readonly toolbarConfig: ToolbarDimensions = {
+    width: 200,
+    height: 40,
+    padding: 16
+  };
+
+  constructor() {
+    super();
+  }
+
+  getSelectionInfo() {
     const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      const range = selection.getRangeAt(0);
-      const rect = range.getBoundingClientRect();
-      return { range, rect };
+    if (!selection?.toString().trim()) {
+      return null;
     }
-    return null;
+
+    return selection.rangeCount > 0 ? {
+      range: selection.getRangeAt(0),
+      rect: selection.getRangeAt(0).getBoundingClientRect()
+    } : null;
   }
 
   hasTextSelection(): boolean {
     const selection = window.getSelection();
-    return !!(selection && selection.toString().trim().length > 0);
+    return Boolean(selection?.toString().trim());
   }
 
-  getElementRect(element: HTMLElement): DOMRect {
-    return element.getBoundingClientRect();
-  }
-
-  adjustToolbarPosition(rect: DOMRect): { top: number; left: number } {
-    const toolbarWidth = 200;
-    const toolbarHeight = 40;
-    const padding = 16;
-    const viewport = {
-      width: window.innerWidth,
-      height: window.innerHeight
-    };
-
-    let left = rect.left + (rect.width / 2) - (toolbarWidth / 2);
-    let top = rect.top - toolbarHeight - padding;
-
-    if (left + toolbarWidth > viewport.width - padding) {
-      left = viewport.width - toolbarWidth - padding;
-    }
-    if (left < padding) {
-      left = padding;
-    }
-
-    if (top < padding) {
-      top = rect.bottom + padding;
-    }
-
-    return { top, left };
-  }
-
-  focusAtEnd(element: HTMLElement) {
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    range.collapse(false);
-
-    const selection = window.getSelection();
-    if (selection) {
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-  }
-
-  unsetSelection() {
+  unsetSelection(): void {
     window.getSelection()?.removeAllRanges();
   }
 
+  adjustToolbarPosition(elementBounds: DOMRect): Position {
+    const viewport = this.getViewportSize();
+    const { width, height, padding } = this.toolbarConfig;
+
+    return {
+      left: this.calculateHorizontalPosition(elementBounds, width, padding, viewport.width),
+      top: this.calculateVerticalPosition(elementBounds, height, padding)
+    };
+  }
+
+  private calculateHorizontalPosition(
+    bounds: DOMRect,
+    toolbarWidth: number,
+    padding: number,
+    viewportWidth: number
+  ): number {
+    let position = bounds.left + (bounds.width / 2) - (toolbarWidth / 2);
+    const rightEdge = viewportWidth - toolbarWidth - padding;
+
+    return Math.max(padding, Math.min(position, rightEdge));
+  }
+
+  private calculateVerticalPosition(
+    bounds: DOMRect,
+    toolbarHeight: number,
+    padding: number
+  ): number {
+    const position = bounds.top - toolbarHeight - padding;
+    return position < padding ? bounds.bottom + padding : position;
+  }
 }

@@ -1,11 +1,3 @@
 <app-header />
 <app-toolbar [state]="toolbarStateService.state$ | async"  (action)="toolbarAction($event)" />
 <app-editor (blockAction)="onBlockAction($event)"  />
-
-<!-- Editor Content -->
-<!--<app-editor-->
-<!--  [document]="document()"-->
-<!--  (contentChange)="onContentChange($event)"-->
-<!--  (selectionChange)="onSelectionChange($event)"-->
-<!--  (blockAction)="onBlockAction($event)"-->
-<!--/>-->

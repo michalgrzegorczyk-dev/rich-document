@@ -7,7 +7,7 @@
 .editable-div {
   position: relative;
   min-height: 28px;
-  padding: 6px 12px;
+  padding: 6px 0px;
   border-radius: 4px;
   font-size: 15px;
   line-height: 1.5;
@@ -17,14 +17,11 @@
   white-space: pre-wrap;
   word-break: break-word;
 
-  &:hover {
-    background-color: rgba(55, 125, 255, 0.04);
-  }
 
   &:focus {
     outline: none;
-    background-color: #ffffff;
-    box-shadow: 0 0 0 2px rgba(55, 125, 255, 0.1);
+    background-color: transparent;
+    box-shadow: none;
   }
 
   &:empty::before {
@@ -74,5 +71,15 @@
       color: #24292e;
       tab-size: 2;
     }
+  }
+}
+
+.ez2 {
+  visibility: hidden;
+}
+
+.ez1:hover {
+  .ez2 {
+    visibility: visible;
   }
 }

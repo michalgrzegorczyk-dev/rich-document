@@ -22,13 +22,13 @@ export class ToolbarManager {
 
   private handleImageClick(image: HTMLImageElement) {
     this.#elementInteraction.unsetSelection();
-    const rect = this.#elementInteraction.getElementRect(image);
+    const rect = this.#elementInteraction.getElementBounds(image);
     const position = this.#elementInteraction.adjustToolbarPosition(rect);
     this.#toolbarStateService.showImageToolbar(position);
   }
 
   private handleCodeClick(codeBlock: HTMLElement) {
-    const rect = this.#elementInteraction.getElementRect(codeBlock);
+    const rect = this.#elementInteraction.getElementBounds(codeBlock);
     const position = this.#elementInteraction.adjustToolbarPosition(rect);
     this.#toolbarStateService.showCodeToolbar(position);
   }

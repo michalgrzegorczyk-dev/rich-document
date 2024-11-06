@@ -5,7 +5,7 @@ import { HeaderComponent } from '../header/header.component';
 import { ToolbarComponent } from '../toolbar/toolbar.component';
 import { ToolbarManager } from '../../services/toolbar-manager';
 import { BlockStore } from '../../services/block.store';
-import { KeyboardService } from '../../services/keyboard.service';
+import { KeyboardService } from '../../utils/keyboard/keyboard.service';
 import { FocusManager } from '../../services/focus-manager';
 import { ToolbarStateService } from '../../services/toolbar.service';
 

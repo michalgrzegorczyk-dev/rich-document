@@ -19,17 +19,6 @@ export class BlockStore {
     this.blocks.set([...this.blocks(), newBlock]);
   }
 
-  isCodeContent(text: string): boolean {
-    const codeIndicators = [
-      '{', '}', ';', '//', '/*', '*/',
-      'function', 'const', 'let', 'var',
-      'class', 'import', 'export',
-      '</', '/>'
-    ];
-    return codeIndicators.some(indicator => text.includes(indicator)) &&
-      text.split('\n').length > 1;
-  }
-
   removeBlock(index: number) {
     this.blocks.set(this.blocks().filter((_:Block, i:number) => i !== index));
   }

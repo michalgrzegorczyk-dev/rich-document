@@ -44,6 +44,8 @@ export class EditorComponent implements AfterViewInit, OnInit {
     this.focusManager.setEditableDivRefs(this.editableDivRefs);}
 
   ngAfterViewInit(): void {
+    this.focusManager.setEditableDivRefs(this.editableDivRefs);
+
     this.editableDivRefs.changes
       .pipe(
         filter(() => this.focusManager.hasPendingFocus())
