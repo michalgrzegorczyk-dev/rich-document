@@ -14,8 +14,6 @@ export class ToolbarComponent {
   @Input() state!: ToolbarState | null;
   @Output() action = new EventEmitter<{type: string, value: string}>();
 
-  constructor(private toolbarStateService: ToolbarStateService) {}
-
   handleAction(type: string, value: string) {
     this.action.emit({type, value});
   }

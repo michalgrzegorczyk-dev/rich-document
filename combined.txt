@@ -1,0 +1,1082 @@
+<h1>Rich Document</h1>
+
+<app-header />
+<app-toolbar [state]="toolbarStateService.state$ | async"  (action)="toolbarAction($event)" />
+<app-editable-container (edit)="handleEdit($event)" (toolbarStateChange)="updateToolbar($event)" />
+
+:host {
+  display: block;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+
+import {
+  Component,
+  ChangeDetectorRef,
+} from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { NgForOf, CommonModule } from '@angular/common';
+import { ToolbarStateService } from './services/toolbar.service';
+import { HeaderComponent } from './components/header/header.component';
+import { ToolbarComponent } from './components/toolbar/toolbar.component';
+import { EditableContainerComponent } from './components/editable-container/editable-container.component';
+import { ToolbarState } from './models/toolbar.models';
+
+// interface ToolbarState {
+//   show: boolean;
+//   isTextSelection: boolean;
+//   isImageSelected: boolean;
+//   isCodeBlock: boolean;
+//   position: { top: number; left: number };
+// }
+
+@Component({
+  standalone: true,
+  imports: [RouterModule, NgForOf, CommonModule, HeaderComponent, ToolbarComponent, EditableContainerComponent],
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss']
+})
+export class AppComponent {
+  selectedImageElement: HTMLImageElement | null = null;
+
+  toolbarState: ToolbarState = {
+    show: false,
+    isTextSelection: false,
+    isImageSelected: false,
+    isCodeBlock: false,
+    position: { top: 0, left: 0 }
+  };
+
+  constructor(
+    private cdr: ChangeDetectorRef,
+    public toolbarStateService: ToolbarStateService
+  ) {}
+
+  toolbarAction(event: {type: string, value: string}) {
+
+    console.log(`Toolbar action: ${event.type} - ${event.value}`); // General log for any toolbar action
+    switch (event.type) {
+      case 'format':
+        this.formatText(event.value as 'bold' | 'italic');
+        break;
+      case 'image':
+        this.handleImageOptions(event.value);
+        break;
+      case 'code':
+        this.handleCodeOptions(event.value);
+        break;
+    }
+  }
+
+  formatText(format: 'bold' | 'italic') {
+    document.execCommand(format, false);
+  }
+
+  private handleCodeOptions(value: string) {
+
+  }
+
+  private showImageEditingToolbar(imageElement: HTMLImageElement): void {
+    console.log("Displaying image editing toolbar for:", imageElement.src);
+    // Here you can expand functionality, for now, it logs the action
+    const rect = imageElement.getBoundingClientRect();
+    this.toolbarState = {
+      show: true,
+      isTextSelection: false,
+      isImageSelected: true,
+      isCodeBlock: false,
+      position: { top: rect.bottom + 10, left: rect.left }
+    };
+    this.cdr.detectChanges();
+  }
+  private handleImageOptions(value: string): void {
+    console.log("Image options clicked:", value);
+    if (this.selectedImageElement) {
+      this.showImageEditingToolbar(this.selectedImageElement);
+    } else {
+      console.log("No image is selected when trying to access image options.");
+    }
+  }
+
+  handleEdit(event: { type: string; content: string; index: number }) {
+    switch (event.type) {
+      case 'text':
+        console.log('Text edited:', event.content);
+        break;
+      case 'image':
+        console.log('Image added/edited:', event.content);
+        break;
+      case 'code':
+        console.log('Code block edited:', event.content);
+        break;
+    }
+  }
+
+  updateToolbar(state: ToolbarState) {
+    this.toolbarState = {
+      ...state,
+      position: this.adjustToolbarPosition(state.position)
+    };
+
+    this.cdr.detectChanges();
+  }
+
+  private adjustToolbarPosition(position: { top: number; left: number }) {
+    const toolbarWidth = 200;
+    const toolbarHeight = 40;
+    const padding = 16;
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let left = position.left;
+    if (left + toolbarWidth > viewportWidth - padding) {
+      left = viewportWidth - toolbarWidth - padding;
+    }
+    if (left < padding) {
+      left = padding;
+    }
+
+    let top = position.top;
+    if (top < padding) {
+      top = position.top + toolbarHeight + padding;
+    }
+    if (top + toolbarHeight > viewportHeight - padding) {
+      top = viewportHeight - toolbarHeight - padding;
+    }
+
+    return { top, left };
+  }
+}
+
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { appRoutes } from './app.routes';
+import { provideAnimations } from '@angular/platform-browser/animations';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(appRoutes),
+    provideAnimations()
+  ],
+};
+
+import { Route } from '@angular/router';
+
+export const appRoutes: Route[] = [];
+
+// editable-block.component.ts
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  ElementRef,
+  ViewChild,
+  ChangeDetectionStrategy,
+  OnInit,
+  OnDestroy
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Block } from '../../models/block.models';
+import { SelectionService } from '../../services/selection.service';
+import { ContentRendererService } from '../../services/content-renderer.service';
+
+@Component({
+  selector: 'app-editable-block',
+  standalone: true,
+  imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <div
+      #blockContainer
+      class="block-container"
+      [class]="'block-type-' + block.type"
+      [attr.contenteditable]="isEditable"
+      (keydown)="onKeyDown($event)"
+      (paste)="onPaste($event)"
+      (mouseup)="onMouseUp($event)"
+      (click)="onClick($event)"
+      [attr.data-block-id]="block.id"
+      [attr.data-placeholder]="placeholder">
+    </div>
+  `,
+  styles: [`
+    .block-container {
+      position: relative;
+      min-height: 28px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 15px;
+      line-height: 1.5;
+      transition: all 0.15s ease;
+      cursor: text;
+      white-space: pre-wrap;
+      word-break: break-word;
+
+      &:hover {
+        background-color: rgba(55, 125, 255, 0.04);
+      }
+
+      &:focus {
+        outline: none;
+        background-color: #ffffff;
+        box-shadow: 0 0 0 2px rgba(55, 125, 255, 0.1);
+      }
+
+      &:empty::before {
+        content: attr(data-placeholder);
+        color: #9ca6af;
+        position: absolute;
+        pointer-events: none;
+      }
+    }
+
+    .block-type-code pre {
+      background: #f6f8fa;
+      border-radius: 6px;
+      padding: 16px;
+      margin: 8px 0;
+      font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+      font-size: 14px;
+      line-height: 1.45;
+      overflow-x: auto;
+    }
+
+    .block-type-image img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      cursor: pointer;
+
+      &.selected {
+        box-shadow: 0 0 0 2px #377dff;
+      }
+    }
+  `]
+})
+export class EditableBlockComponent implements OnInit, OnDestroy {
+  @Input() block!: Block;
+  @Input() isEditable = true;
+  @Input() placeholder = "Type '/' for commands";
+
+  @Output() blockChange = new EventEmitter<Block>();
+  @Output() blockDelete = new EventEmitter<number>();
+  @Output() blockCreate = new EventEmitter<{ index: number, type: string }>();
+  @Output() selectionChange = new EventEmitter<{
+    blockId: number,
+    selection: 'text' | 'element' | null
+  }>();
+
+  @ViewChild('blockContainer') blockContainer!: ElementRef<HTMLDivElement>;
+
+  private mutationObserver?: MutationObserver;
+  private lastContent = '';
+
+  constructor(
+    private selectionService: SelectionService,
+    private contentRenderer: ContentRendererService
+  ) {}
+
+  ngOnInit() {
+    this.setupBlockContent();
+    this.observeContentChanges();
+  }
+
+  private setupBlockContent() {
+    const container = this.blockContainer.nativeElement;
+
+    switch (this.block.type) {
+      case 'text':
+        container.textContent = this.block.content;
+        break;
+      case 'code':
+        this.contentRenderer.renderCodeBlock(container, this.block.content);
+        break;
+      case 'image':
+        const img = document.createElement('img');
+        img.src = this.block.content;
+        container.appendChild(img);
+        break;
+    }
+  }
+
+  private observeContentChanges() {
+    this.mutationObserver = new MutationObserver(() => {
+      const newContent = this.getBlockContent();
+      if (newContent !== this.lastContent) {
+        this.lastContent = newContent;
+        this.blockChange.emit({
+          ...this.block,
+          content: newContent
+        });
+      }
+    });
+
+    this.mutationObserver.observe(this.blockContainer.nativeElement, {
+      childList: true,
+      characterData: true,
+      subtree: true
+    });
+  }
+
+  private getBlockContent(): string {
+    const container = this.blockContainer.nativeElement;
+    switch (this.block.type) {
+      case 'text':
+      case 'code':
+        return container.textContent || '';
+      case 'image':
+        const img = container.querySelector('img');
+        return img ? img.src : '';
+      default:
+        return '';
+    }
+  }
+
+  onKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.blockCreate.emit({
+        index: this.getBlockIndex(),
+        type: 'text'
+      });
+    } else if (event.key === 'Backspace' && !this.getBlockContent()) {
+      event.preventDefault();
+      this.blockDelete.emit(this.block.id);
+    } else if (event.key === '/' && !this.getBlockContent()) {
+      // Trigger command palette
+      // Implementation pending
+    }
+  }
+
+  onPaste(event: ClipboardEvent) {
+    event.preventDefault();
+
+    if (event.clipboardData) {
+      // Handle text paste
+      const text = event.clipboardData.getData('text/plain');
+      if (text) {
+        this.handleTextPaste(text);
+      }
+
+      // Handle image paste
+      const items = event.clipboardData.items;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          this.handleImagePaste(items[i].getAsFile());
+          break;
+        }
+      }
+    }
+  }
+
+  private handleTextPaste(text: string) {
+    if (this.block.type === 'code' || this.isCodeLike(text)) {
+      this.contentRenderer.renderCodeBlock(
+        this.blockContainer.nativeElement,
+        text
+      );
+    } else {
+      document.execCommand('insertText', false, text);
+    }
+  }
+
+  private handleImagePaste(file: File | null) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        this.blockChange.emit({
+          ...this.block,
+          type: 'image',
+          content: e.target.result as string
+        });
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  private isCodeLike(text: string): boolean {
+    const codeIndicators = [
+      '{', '}', ';', '//', '/*', '*/',
+      'function', 'const', 'let', 'var',
+      'class', 'import', 'export'
+    ];
+    return codeIndicators.some(indicator => text.includes(indicator)) &&
+      text.split('\n').length > 1;
+  }
+
+  onMouseUp(event: MouseEvent) {
+    if (this.selectionService.hasTextSelection()) {
+      this.selectionChange.emit({
+        blockId: this.block.id,
+        selection: 'text'
+      });
+    }
+  }
+
+  onClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'IMG' || target.closest('pre')) {
+      this.selectionChange.emit({
+        blockId: this.block.id,
+        selection: 'element'
+      });
+    }
+  }
+
+  private getBlockIndex(): number {
+    const container = this.blockContainer.nativeElement;
+    const blocks = Array.from(container.parentElement?.children || []);
+    return blocks.indexOf(container);
+  }
+
+  ngOnDestroy() {
+    this.mutationObserver?.disconnect();
+  }
+}
+
+<div class="editable-container">
+  <app-editable-block
+    *ngFor="let block of blocks"
+    [block]="block"
+    (blockChange)="handleBlockChange($event)"
+    (blockDelete)="handleBlockDelete($event)"
+    (blockCreate)="handleBlockCreate($event)"
+    (selectionChange)="handleSelectionChange($event)"
+  />
+</div>
+
+@let index = blocks.length;
+<button (click)="createBlock(index)">Add New Block</button>
+
+.editable-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.editable-div {
+  position: relative;
+  min-height: 28px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #292d34;
+  transition: all 0.15s ease;
+  cursor: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  &:hover {
+    background-color: rgba(55, 125, 255, 0.04);
+  }
+
+  &:focus {
+    outline: none;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(55, 125, 255, 0.1);
+  }
+
+  &:empty::before {
+    content: "Type '/' for commands";
+    color: #9ca6af;
+    position: absolute;
+    pointer-events: none;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 0 0 2px rgba(55, 125, 255, 0.2);
+    }
+
+    &.selected {
+      box-shadow: 0 0 0 2px #377dff, 0 4px 12px rgba(55, 125, 255, 0.15);
+    }
+  }
+
+  pre.code-block {
+    background: #f6f8fa;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 8px 0;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+    line-height: 1.45;
+    overflow-x: auto;
+    cursor: text;
+
+    &:hover {
+      background: #f0f3f5;
+    }
+
+    &.selected {
+      box-shadow: 0 0 0 2px #377dff, 0 4px 12px rgba(55, 125, 255, 0.15);
+    }
+
+    code {
+      display: block;
+      color: #24292e;
+      tab-size: 2;
+    }
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .editable-div {
+    color: #e6e9ef;
+
+    &:hover {
+      background-color: rgba(55, 125, 255, 0.08);
+    }
+
+    &:focus {
+      background-color: transparent;
+      box-shadow: 0 0 0 2px rgba(55, 125, 255, 0.2);
+    }
+
+    &:empty::before {
+      color: #6d7175;
+    }
+
+    pre.code-block {
+      background: #2c2d35;
+
+      &:hover {
+        background: #33343d;
+      }
+
+      code {
+        color: #e6e9ef;
+      }
+    }
+  }
+}
+
+import { Component, inject, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { EditableBlockComponent } from '../editable-block/editable-block.component';
+import { Block } from '../../models/block.models';
+import { BlockService } from '../../services/block.service';
+import { ToolbarStateService } from '../../services/toolbar.service';
+import { SelectionService } from '../../services/selection.service';
+
+@Component({
+  selector: 'app-editable-container',
+  standalone: true,
+  imports: [CommonModule, EditableBlockComponent],
+  templateUrl: './editable-container.component.html',
+  styleUrls: ['./editable-container.component.scss']
+})
+export class EditableContainerComponent {
+  private blockService = inject(BlockService);
+  private toolbarStateService = inject(ToolbarStateService);
+  private selectionService = inject(SelectionService);
+  private cdr = inject(ChangeDetectorRef);
+
+  blocks: Block[] = [];
+  selectedBlockId: number | null = null;
+
+  constructor() {
+    // Initialize with an empty block
+    this.blocks = [this.blockService.createBlock()];
+  }
+
+  handleBlockChange(updatedBlock: Block) {
+    const index = this.blocks.findIndex(block => block.id === updatedBlock.id);
+    if (index !== -1) {
+      // Create a new array to trigger change detection
+      this.blocks = [
+        ...this.blocks.slice(0, index),
+        { ...updatedBlock },
+        ...this.blocks.slice(index + 1)
+      ];
+
+      // Save changes (implement persistence if needed)
+      this.saveBlocks();
+
+      // Ensure UI updates
+      this.cdr.detectChanges();
+    }
+  }
+
+  handleBlockDelete(blockId: number) {
+    const index = this.blocks.findIndex(block => block.id === blockId);
+    if (index !== -1 && this.blocks.length > 1) {
+      // Remove the block
+      this.blocks = [
+        ...this.blocks.slice(0, index),
+        ...this.blocks.slice(index + 1)
+      ];
+
+      // Focus the previous block if exists, otherwise the next block
+      const blockToFocus = this.blocks[Math.max(0, index - 1)];
+      this.focusBlock(blockToFocus.id);
+
+      // Save changes
+      this.saveBlocks();
+
+      // Hide toolbar if visible
+      this.toolbarStateService.hideToolbar();
+
+      // Update UI
+      this.cdr.detectChanges();
+    }
+  }
+
+  handleBlockCreate(event: { index: number; type: string }) {
+    // Create new block
+    const newBlock = this.blockService.createBlock(event.type);
+
+    // Insert at specified index
+    this.blocks = [
+      ...this.blocks.slice(0, event.index + 1),
+      newBlock,
+      ...this.blocks.slice(event.index + 1)
+    ];
+
+    // Focus the new block
+    setTimeout(() => {
+      this.focusBlock(newBlock.id);
+    });
+
+    // Save changes
+    this.saveBlocks();
+
+    // Update UI
+    this.cdr.detectChanges();
+  }
+
+  handleSelectionChange(event: { blockId: number; selection: 'text' | 'element' | null }) {
+    this.selectedBlockId = event.blockId;
+
+    // Get the selected block element
+    const blockElement = this.getBlockElement(event.blockId);
+    if (!blockElement) return;
+
+    if (event.selection === 'text') {
+      const selectionInfo = this.selectionService.getSelectionInfo();
+      if (selectionInfo) {
+        const position = this.selectionService.adjustToolbarPosition(selectionInfo.rect);
+        this.toolbarStateService.showTextToolbar(position);
+      }
+    } else if (event.selection === 'element') {
+      const rect = blockElement.getBoundingClientRect();
+      const position = this.selectionService.adjustToolbarPosition(rect);
+
+      const block = this.blocks.find(b => b.id === event.blockId);
+      if (block?.type === 'image') {
+        this.toolbarStateService.showImageToolbar(position);
+      } else if (block?.type === 'code') {
+        this.toolbarStateService.showCodeToolbar(position);
+      }
+    } else {
+      this.toolbarStateService.hideToolbar();
+    }
+  }
+
+  createBlock(index: number) {
+    const newBlock = this.blockService.createBlock();
+
+    // Insert the new block
+    this.blocks = [
+      ...this.blocks.slice(0, index + 1),
+      newBlock,
+      ...this.blocks.slice(index + 1)
+    ];
+
+    // Focus the new block
+    setTimeout(() => {
+      this.focusBlock(newBlock.id);
+    });
+
+    // Save changes
+    this.saveBlocks();
+
+    // Update UI
+    this.cdr.detectChanges();
+  }
+
+  // Helper methods
+  private focusBlock(blockId: number) {
+    const blockElement = this.getBlockElement(blockId);
+    if (blockElement) {
+      const contentEditable = blockElement.querySelector('[contenteditable]');
+      if (contentEditable) {
+        contentEditable.focus();
+        this.selectionService.focusAtEnd(contentEditable as HTMLElement);
+      }
+    }
+  }
+
+  private getBlockElement(blockId: number): HTMLElement | null {
+    return document.querySelector(`[data-block-id="${blockId}"]`);
+  }
+
+  private saveBlocks() {
+    // Implement persistence logic here
+    // For example, save to localStorage or make API call
+    try {
+      localStorage.setItem('editor-blocks', JSON.stringify(this.blocks));
+    } catch (error) {
+      console.error('Error saving blocks:', error);
+    }
+  }
+
+  // Optional: Load saved blocks
+  private loadBlocks() {
+    try {
+      const savedBlocks = localStorage.getItem('editor-blocks');
+      if (savedBlocks) {
+        this.blocks = JSON.parse(savedBlocks);
+      }
+    } catch (error) {
+      console.error('Error loading blocks:', error);
+      // Fallback to empty block
+      this.blocks = [this.blockService.createBlock()];
+    }
+  }
+}
+
+
+<h2>Title</h2>
+<p>Description: This is description.</p>
+<p>Author: Michal Grzegorczyk</p>
+
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-header',
+  templateUrl: './header.component.html',
+  standalone: true
+})
+export class HeaderComponent {
+}
+
+<!-- toolbar.component.html -->
+<div *ngIf="state?.show" class="floating-toolbar" [style.top.px]="state?.position?.top" [style.left.px]="state?.position?.left">
+  <div *ngIf="state?.isTextSelection" class="toolbar-group">
+    <button (click)="handleAction('format', 'bold')" class="toolbar-button">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+        <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+      </svg>
+    </button>
+    <button (click)="handleAction('format', 'italic')" class="toolbar-button">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="4" x2="10" y2="4"/>
+        <line x1="14" y1="20" x2="5" y2="20"/>
+        <line x1="15" y1="4" x2="9" y2="20"/>
+      </svg>
+    </button>
+  </div>
+  <div *ngIf="state?.isImageSelected" class="toolbar-group">
+    <button (click)="handleAction('image', 'options')" class="toolbar-button">Image Options</button>
+  </div>
+  <div *ngIf="state?.isCodeBlock" class="toolbar-group">
+    <button (click)="handleAction('code', 'theme')" class="toolbar-button">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+      Change Theme
+    </button>
+    <button (click)="handleAction('code', 'copy')" class="toolbar-button">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+      </svg>
+      Copy
+    </button>
+  </div>
+</div>
+
+// toolbar.component.scss
+.floating-toolbar {
+  position: fixed;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  z-index: 1000;
+  display: flex;
+  gap: 4px;
+  transition: all 0.1s ease;
+  border: 1px solid #e8ecef;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 4px;
+}
+
+.toolbar-button {
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #292d34;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: #f0f3f5;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { NgIf, AsyncPipe } from '@angular/common';
+import { ToolbarStateService } from '../../services/toolbar.service';
+import { ToolbarState } from '../../models/toolbar.models';
+
+@Component({
+  selector: 'app-toolbar',
+  templateUrl: './toolbar.component.html',
+  styleUrls: ['./toolbar.component.scss'],
+  imports: [NgIf, AsyncPipe],
+  standalone: true
+})
+export class ToolbarComponent {
+  @Input() state!: ToolbarState | null;
+  @Output() action = new EventEmitter<{type: string, value: string}>();
+
+  constructor(private toolbarStateService: ToolbarStateService) {}
+
+  handleAction(type: string, value: string) {
+    this.action.emit({type, value});
+  }
+}
+
+import { BlockType } from './types';
+
+export interface Block {
+  id: number;
+  type: BlockType;
+  content: string;
+}
+
+export interface BlockEvent {
+  type: BlockType;
+  content: string;
+  index: number;
+}
+
+import { ToolbarActionType } from './types';
+
+export interface ToolbarState {
+  show: boolean;
+  isTextSelection: boolean;
+  isImageSelected: boolean;
+  isCodeBlock: boolean;
+  position: Position;
+}
+
+export interface ToolbarAction {
+  type: ToolbarActionType;
+  value: string;
+}
+
+export interface Position {
+  top: number;
+  left: number;
+}
+
+export type BlockType = 'text' | 'image' | 'code';
+export type ToolbarActionType = 'format' | 'image' | 'code';
+
+import { Injectable } from '@angular/core';
+import { Block } from '../models/block.models';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class BlockService {
+  private nextId = 1;
+
+  createBlock(): Block {
+    return {
+      id: this.nextId++,
+      type: 'text',
+      content: ''
+    };
+  }
+
+  isCodeContent(text: string): boolean {
+    const codeIndicators = [
+      '{', '}', ';', '//', '/*', '*/',
+      'function', 'const', 'let', 'var',
+      'class', 'import', 'export',
+      '</', '/>'
+    ];
+    return codeIndicators.some(indicator => text.includes(indicator)) &&
+      text.split('\n').length > 1;
+  }
+}
+
+import { Injectable, Renderer2, RendererFactory2 } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ContentRendererService {
+  private renderer: Renderer2;
+
+  constructor(rendererFactory: RendererFactory2) {
+    this.renderer = rendererFactory.createRenderer(null, null);
+  }
+
+  renderCodeBlock(container: HTMLElement, code: string): void {
+    const pre = this.renderer.createElement('pre');
+    const codeElement = this.renderer.createElement('code');
+
+    this.renderer.addClass(pre, 'code-block');
+    this.renderer.setProperty(codeElement, 'textContent', code);
+    this.renderer.appendChild(pre, codeElement);
+    this.renderer.appendChild(container, pre);
+  }
+}
+
+import { Injectable } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class SelectionService {
+  getSelectionInfo(): { range: Range, rect: DOMRect } | null {
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      return { range, rect };
+    }
+    return null;
+  }
+
+  hasTextSelection(): boolean {
+    const selection = window.getSelection();
+    return !!(selection && selection.toString().trim().length > 0);
+  }
+
+  getElementRect(element: HTMLElement): DOMRect {
+    return element.getBoundingClientRect();
+  }
+
+  adjustToolbarPosition(rect: DOMRect): { top: number; left: number } {
+    const toolbarWidth = 200;
+    const toolbarHeight = 40;
+    const padding = 16;
+    const viewport = {
+      width: window.innerWidth,
+      height: window.innerHeight
+    };
+
+    let left = rect.left + (rect.width / 2) - (toolbarWidth / 2);
+    let top = rect.top - toolbarHeight - padding;
+
+    // Adjust horizontal position if toolbar would be off-screen
+    if (left + toolbarWidth > viewport.width - padding) {
+      left = viewport.width - toolbarWidth - padding;
+    }
+    if (left < padding) {
+      left = padding;
+    }
+
+    // Adjust vertical position if toolbar would be off-screen
+    if (top < padding) {
+      top = rect.bottom + padding; // Show below instead of above
+    }
+
+    return { top, left };
+  }
+
+  focusAtEnd(element: HTMLElement) {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+
+    const selection = window.getSelection();
+    if (selection) {
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }
+}
+
+import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+import { ToolbarState } from '../models/toolbar.models';
+
+const initialToolbarState: ToolbarState = {
+  show: false,
+  isTextSelection: false,
+  isImageSelected: false,
+  isCodeBlock: false,
+  position: { top: 0, left: 0 }
+};
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ToolbarStateService {
+  private state = new BehaviorSubject<ToolbarState>(initialToolbarState);
+  state$ = this.state.asObservable();
+
+  showTextToolbar(position: { top: number; left: number }) {
+    this.state.next({
+      show: true,
+      isTextSelection: true,
+      isImageSelected: false,
+      isCodeBlock: false,
+      position
+    });
+  }
+
+  showImageToolbar(position: { top: number; left: number }) {
+    this.state.next({
+      show: true,
+      isTextSelection: false,
+      isImageSelected: true,
+      isCodeBlock: false,
+      position
+    });
+  }
+
+  showCodeToolbar(position: { top: number; left: number }) {
+    this.state.next({
+      show: true,
+      isTextSelection: false,
+      isImageSelected: false,
+      isCodeBlock: true,
+      position
+    });
+  }
+
+  hideToolbar() {
+    this.state.next(initialToolbarState);
+  }
+
+  getCurrentState(): ToolbarState {
+    return this.state.getValue();
+  }
+}
+

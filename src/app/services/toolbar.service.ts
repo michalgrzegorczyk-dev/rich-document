@@ -50,8 +50,4 @@ export class ToolbarStateService {
   hideToolbar() {
     this.state.next(initialToolbarState);
   }
-
-  getCurrentState(): ToolbarState {
-    return this.state.getValue();
-  }
 }

@@ -1,4 +1,3 @@
-<!-- toolbar.component.html -->
 <div *ngIf="state?.show" class="floating-toolbar" [style.top.px]="state?.position?.top" [style.left.px]="state?.position?.left">
   <div *ngIf="state?.isTextSelection" class="toolbar-group">
     <button (click)="handleAction('format', 'bold')" class="toolbar-button">
