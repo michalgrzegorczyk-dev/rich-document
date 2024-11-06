@@ -76,35 +76,3 @@
     }
   }
 }
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .editable-div {
-    color: #e6e9ef;
-
-    &:hover {
-      background-color: rgba(55, 125, 255, 0.08);
-    }
-
-    &:focus {
-      background-color: transparent;
-      box-shadow: 0 0 0 2px rgba(55, 125, 255, 0.2);
-    }
-
-    &:empty::before {
-      color: #6d7175;
-    }
-
-    pre.code-block {
-      background: #2c2d35;
-
-      &:hover {
-        background: #33343d;
-      }
-
-      code {
-        color: #e6e9ef;
-      }
-    }
-  }
-}

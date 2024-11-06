@@ -1,84 +1,72 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
-import { AsyncPipe, NgForOf, CommonModule } from '@angular/common';
-import { EditableContainerComponent } from '../editable-container/editable-container.component';
+import { Component, inject, OnInit } from '@angular/core';
+import { AsyncPipe, NgForOf } from '@angular/common';
+import { EditorComponent } from '../editor/editor.component';
 import { HeaderComponent } from '../header/header.component';
 import { ToolbarComponent } from '../toolbar/toolbar.component';
-import { ToolbarState } from '../../models/toolbar.models';
+import { ToolbarManager } from '../../services/toolbar-manager';
+import { BlockStore } from '../../services/block.store';
+import { KeyboardService } from '../../services/keyboard.service';
+import { FocusManager } from '../../services/focus-manager';
 import { ToolbarStateService } from '../../services/toolbar.service';
-import { RouterModule } from '@angular/router';
+
+const COMPONENTS = [HeaderComponent, ToolbarComponent, EditorComponent, EditorComponent];
+const DIRECTIVES = [NgForOf, AsyncPipe];
 
 @Component({
   selector: 'app-rich-document',
   templateUrl: './rich-document.component.html',
   styleUrls: ['./rich-document.component.scss'],
-  imports: [
-    RouterModule, NgForOf, CommonModule, HeaderComponent, ToolbarComponent, EditableContainerComponent,
-    AsyncPipe,
-    EditableContainerComponent,
-    HeaderComponent,
-    ToolbarComponent
-  ],
+  imports: [...COMPONENTS, ...DIRECTIVES],
   standalone: true
 })
-export class RichDocumentComponent {
-  selectedImageElement: HTMLImageElement | null = null;
+export class RichDocumentComponent implements OnInit {
+  toolbarStateService = inject(ToolbarStateService);
+  readonly #blockService = inject(BlockStore);
+  readonly #keyboardManager = inject(KeyboardService);
+  readonly #toolbarManager = inject(ToolbarManager);
+  readonly #focusManager = inject(FocusManager);
 
-  toolbarState: ToolbarState = {
-    show: false,
-    isTextSelection: false,
-    isImageSelected: false,
-    isCodeBlock: false,
-    position: { top: 0, left: 0 }
-  };
+  ngOnInit(): void {
+    this.#keyboardManager.enterPressed$.subscribe((index) => {
+      this.#blockService.createBlock();
+      this.#focusManager.requestFocus(index + 1);
+    });
 
-  constructor(
-    private cdr: ChangeDetectorRef,
-    public toolbarStateService: ToolbarStateService
-  ) {}
+    this.#keyboardManager.backspacePressed$.subscribe((index) => {
+      // todo check if there is text
+      this.#blockService.removeBlock(index);
+      this.#focusManager.requestFocus(index - 1);
+    });
+  }
 
-  toolbarAction(event: {type: string, value: string}) {
-
-    console.log(`Toolbar action: ${event.type} - ${event.value}`); // General log for any toolbar action
+  toolbarAction(event: { type: string, value: string }) {
+    console.log(`Toolbar action: ${event.type} - ${event.value}`);
     switch (event.type) {
       case 'format':
-        this.formatText(event.value as 'bold' | 'italic');
+        document.execCommand(event.value, false);
         break;
       case 'image':
-        this.handleImageOptions(event.value);
+        console.log('Image things.');
         break;
       case 'code':
-        this.handleCodeOptions(event.value);
+        console.log('Code things.');
         break;
     }
   }
 
-  formatText(format: 'bold' | 'italic') {
-    document.execCommand(format, false);
-  }
-
-  private handleCodeOptions(value: string) {
-
-  }
-
-  private showImageEditingToolbar(imageElement: HTMLImageElement): void {
-    console.log("Displaying image editing toolbar for:", imageElement.src);
-    // Here you can expand functionality, for now, it logs the action
-    const rect = imageElement.getBoundingClientRect();
-    this.toolbarState = {
-      show: true,
-      isTextSelection: false,
-      isImageSelected: true,
-      isCodeBlock: false,
-      position: { top: rect.bottom + 10, left: rect.left }
-    };
-    this.cdr.detectChanges();
-  }
-  private handleImageOptions(value: string): void {
-    console.log("Image options clicked:", value);
-    if (this.selectedImageElement) {
-      this.showImageEditingToolbar(this.selectedImageElement);
-    } else {
-      console.log("No image is selected when trying to access image options.");
+  protected onBlockAction(event: { type: string, blockId: string, data?: any }) {
+    switch (event.type) {
+      case 'click':
+        this.#toolbarManager.handleClick(event.data as HTMLElement);
+        break;
+      case 'create':
+        this.#blockService.createBlock();
+        break;
+      case 'keydown':
+        this.#keyboardManager.handleKeyDown(event.data.event, event.data.index);
+        break;
+      default:
+        console.warn('Unhandled block action:', event);
     }
   }
 }

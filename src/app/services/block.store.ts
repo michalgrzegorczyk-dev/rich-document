@@ -4,7 +4,7 @@ import { Block } from '../models/block.models';
 @Injectable({
   providedIn: 'root'
 })
-export class BlockService {
+export class BlockStore {
   blocks = signal<Block[]>([]);
 
   private nextId = 1;

@@ -4,10 +4,10 @@
     [attr.contenteditable]="true"
     (keydown)="onKeyDown($event, i)"
     (click)="onClick($event)"
-    (paste)="onPaste($event, i)"
     class="editable-div"
+    [attr.id]="block.id"
     #editableDiv>
   </div>
 </div>
 
-<button (click)="createBlock(blocks.length)">Add New Block</button>
+<button (click)="createBlock()">Add New Block</button>

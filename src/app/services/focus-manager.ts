@@ -1,6 +1,7 @@
 import { BehaviorSubject } from 'rxjs';
-import { QueryList, ElementRef } from '@angular/core';
-import { SelectionService } from './selection.service';
+import { QueryList, ElementRef, Injectable, inject } from '@angular/core';
+import { ElementInteractionService } from './element-interaction.service';
+import { DOCUMENT } from '@angular/common';
 
 interface FocusOptions {
   position?: 'start' | 'end' | number;
@@ -8,13 +9,13 @@ interface FocusOptions {
   preventScroll?: boolean;
 }
 
+@Injectable({
+  providedIn: 'root'
+})
 export class FocusManager {
   private readonly pendingFocusSubject = new BehaviorSubject<number | null>(null);
   private readonly activeBlockSubject = new BehaviorSubject<number | null>(null);
   private editableDivRefs?: QueryList<ElementRef<HTMLDivElement>>;
-
-  readonly pendingFocus$ = this.pendingFocusSubject.asObservable();
-  readonly activeBlock$ = this.activeBlockSubject.asObservable();
 
   private readonly defaultOptions: FocusOptions = {
     position: 'end',
@@ -22,17 +23,14 @@ export class FocusManager {
     preventScroll: false
   };
 
-  constructor(
-    private readonly selectionService: SelectionService,
-    private readonly document: Document
-  ) {}
+  document = inject(DOCUMENT);
+  selectionService = inject(ElementInteractionService);
 
   setEditableDivRefs(refs: QueryList<ElementRef<HTMLDivElement>>) {
     this.editableDivRefs = refs;
   }
 
   requestFocus(index: number, options: FocusOptions = this.defaultOptions): void {
-    // Always queue the focus request if refs aren't set yet
     if (!this.editableDivRefs) {
       this.pendingFocusSubject.next(index);
       return;
@@ -47,10 +45,6 @@ export class FocusManager {
 
   getPendingIndex(): number | null {
     return this.pendingFocusSubject.value;
-  }
-
-  getActiveBlock(): number | null {
-    return this.activeBlockSubject.value;
   }
 
   hasPendingFocus(): boolean {
@@ -120,11 +114,9 @@ export class FocusManager {
 
     const { position } = options;
     if (position === 'start') {
-      // Implement focusAtStart when needed
     } else if (position === 'end') {
       this.selectionService.focusAtEnd(element);
     } else if (typeof position === 'number') {
-      // Implement focusAtPosition when needed
     }
   }
 

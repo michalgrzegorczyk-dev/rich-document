@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 @Injectable({
   providedIn: 'root'
 })
-export class SelectionService {
+export class ElementInteractionService {
   getSelectionInfo(): { range: Range, rect: DOMRect } | null {
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
@@ -35,7 +35,6 @@ export class SelectionService {
     let left = rect.left + (rect.width / 2) - (toolbarWidth / 2);
     let top = rect.top - toolbarHeight - padding;
 
-    // Adjust horizontal position if toolbar would be off-screen
     if (left + toolbarWidth > viewport.width - padding) {
       left = viewport.width - toolbarWidth - padding;
     }
@@ -43,9 +42,8 @@ export class SelectionService {
       left = padding;
     }
 
-    // Adjust vertical position if toolbar would be off-screen
     if (top < padding) {
-      top = rect.bottom + padding; // Show below instead of above
+      top = rect.bottom + padding;
     }
 
     return { top, left };
@@ -66,4 +64,5 @@ export class SelectionService {
   unsetSelection() {
     window.getSelection()?.removeAllRanges();
   }
+
 }
