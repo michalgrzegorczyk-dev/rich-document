@@ -44,7 +44,7 @@ export class EditorComponent implements AfterViewInit, OnInit {
   editorBlocksChange = new EventEmitter<EditorBlocks>();
 
   @Input()
-  set editorBlocks(blocks: Block[]) {//todo should be editor blocks, later
+  set editorBlocks(blocks: Block[]) {//todo should be editor blocks, later, then map
     if (this.firstTime) {
       const formArray = this.formGroup.get('blocks') as FormArray;
       formArray.clear();
@@ -58,7 +58,7 @@ export class EditorComponent implements AfterViewInit, OnInit {
     }
   }
 
-  readonly toolbarState = signal<ToolbarActionInput>({ type: '', position: { top: 0, left: 0 } });
+  readonly toolbarAction = signal<ToolbarActionInput>({ type: '', position: { top: 0, left: 0 } });
 
   fb = inject(FormBuilder);
   readonly #domHelper = inject(DomHelper);
@@ -68,10 +68,6 @@ export class EditorComponent implements AfterViewInit, OnInit {
   firstTime = true;
 
 
-  get itemsFormArray() {
-    return this.formGroup.get('blocks') as FormArray;
-  }
-
   ngOnInit(): void {
     this.formGroup.valueChanges.pipe(
       debounceTime(1_000),
@@ -79,8 +75,6 @@ export class EditorComponent implements AfterViewInit, OnInit {
         return this.formGroup.value as EditorBlocks;
       })
     ).subscribe((value) => {
-      console.log('saving');
-      console.log(value);
       this.editorBlocksChange.emit(value);
     });
   }
@@ -101,6 +95,11 @@ export class EditorComponent implements AfterViewInit, OnInit {
       });
   }
 
+
+  get blocksFromArray() {
+    return this.formGroup.get('blocks') as FormArray;
+  }
+
   onToolbarAction(event: { type: string, value: string }) {
     console.log(`Toolbar action: ${event.type} - ${event.value}`);
     switch (event.type) {
@@ -109,6 +108,7 @@ export class EditorComponent implements AfterViewInit, OnInit {
         break;
       case 'image':
         console.log('Image things.');
+        //todo, i have block id, search, oldvalue, new value, transoform
         break;
       case 'code':
         console.log('Code things.');
@@ -116,21 +116,21 @@ export class EditorComponent implements AfterViewInit, OnInit {
     }
   }
 
-  addItem(): void {
-    this.itemsFormArray.push(this.fb.group({ content: [''] }));
+  addBlock(): void {
+    this.blocksFromArray.push(this.fb.group({ content: [''] }));
     setTimeout(() => {
-      this.#domHelper.focusBlock(this.itemsFormArray.length - 1);
+      this.#domHelper.focusBlock(this.blocksFromArray.length - 1);
     }, 10);
   }
 
-  removeItem(index: number): void {
-    if (this.itemsFormArray.length <= 1) {
-      const currentBlock = this.itemsFormArray.at(0);
+  removeBlock(index: number): void {
+    if (this.blocksFromArray.length <= 1) {
+      const currentBlock = this.blocksFromArray.at(0);
       currentBlock.patchValue({ content: '' });
       return;
     }
 
-    this.itemsFormArray.removeAt(index);
+    this.blocksFromArray.removeAt(index);
 
     if (index > 0) {
       this.#domHelper.focusBlock(index - 1);
@@ -142,20 +142,20 @@ export class EditorComponent implements AfterViewInit, OnInit {
       return;
     }
 
-    const currentBlock = this.itemsFormArray.at(currentIndex);
-    const previousBlock = this.itemsFormArray.at(currentIndex - 1);
+    const currentBlock = this.blocksFromArray.at(currentIndex);
+    const previousBlock = this.blocksFromArray.at(currentIndex - 1);
     const currentContent = currentBlock.get('content')?.value || '';
     const previousContent = previousBlock.get('content')?.value || '';
     previousBlock.patchValue({ content: previousContent + currentContent });
 
-    this.itemsFormArray.removeAt(currentIndex);
+    this.blocksFromArray.removeAt(currentIndex);
     this.#domHelper.focusBlock(currentIndex - 1);
   }
 
   onKeydown(event: KeyboardEvent, index: number): void {
     if (event.key === 'Enter') {
       event.preventDefault();
-      this.addItem();
+      this.addBlock();
       return;
     }
 
@@ -165,9 +165,9 @@ export class EditorComponent implements AfterViewInit, OnInit {
       const isAtStart = selection?.anchorOffset === 0;
       const isEmpty = this.isBlockEmpty(target);
 
-      if (isEmpty && this.itemsFormArray.length > 1) {
+      if (isEmpty && this.blocksFromArray.length > 1) {
         event.preventDefault();
-        this.removeItem(index);
+        this.removeBlock(index);
         return;
       }
 
@@ -188,7 +188,7 @@ export class EditorComponent implements AfterViewInit, OnInit {
     if (selectedText) {
       const rect = this.#domHelper.getElementBounds(event.target as HTMLElement);
       const position = this.#domHelper.adjustToolbarPosition(rect);
-      this.toolbarState.set({ type: 'text', position });
+      this.toolbarAction.set({ type: 'text', position });
     }
   }
 
@@ -198,7 +198,7 @@ export class EditorComponent implements AfterViewInit, OnInit {
     if (target.tagName.toLowerCase() === 'img') {
       const rect = this.#domHelper.getElementBounds(event.target as HTMLElement);
       const position = this.#domHelper.adjustToolbarPosition(rect);
-      this.toolbarState.set({ type: 'img', position });
+      this.toolbarAction.set({ type: 'img', position });
       console.log('Image clicked');
       return;
     }

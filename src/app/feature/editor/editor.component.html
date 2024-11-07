@@ -1,8 +1,8 @@
-<app-toolbar [toolbarType]="toolbarState()" (toolbarAction)="onToolbarAction($event)" />
+<app-toolbar [toolbarActionInput]="toolbarAction()" (toolbarAction)="onToolbarAction($event)" />
 
 <form [formGroup]="formGroup" class="editable-container">
   <div formArrayName="blocks">
-    @for (block of itemsFormArray.controls; track i; let i = $index;) {
+    @for (block of blocksFromArray.controls; track i; let i = $index;) {
       <div [formGroupName]="i" class="block-container">
         <div class="hash">#</div>
         <div #editableDiv
@@ -20,6 +20,6 @@
 </form>
 
 
-<div class="xxx" (click)="addItem()"> </div>
+<div class="xxx" (click)="addBlock()"> </div>
 
 

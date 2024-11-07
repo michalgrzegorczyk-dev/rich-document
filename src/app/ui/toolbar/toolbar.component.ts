@@ -17,32 +17,27 @@ export class ToolbarComponent {
   readonly #toolbarStateService = inject(ToolbarStateService);
   readonly toolbarState$ = this.#toolbarStateService.state$;
 
-  // make map to function for actions
   map : any = {
     'text': (position:Position) => this.#toolbarStateService.showTextToolbar(position),
     'img': (position: Position) => this.#toolbarStateService.showImageToolbar(position),
     'code': (position: Position) =>this.#toolbarStateService.showCodeToolbar(position)
   };
 
+  mapAction: any= {
+    'format': (value: string) => this.toolbarAction.emit({ type: 'format', value }),
+    'image': (value: string) => {
+      console.log('Image options clicked:', value);
+      this.toolbarAction.emit({ type: 'image', value });
+    },
+    'code': (value: string) => console.log('Code options clicked:', value)
+  }
+
   @Input()
-  set toolbarType(action: ToolbarActionInput) {
+  set toolbarActionInput(action: ToolbarActionInput) {
     this.map[action.type](action.position);
   }
 
   handleAction(type: string, value: string): void {
-    console.log(`Toolbar action: ${type} - ${value}`);
-
-    switch (type) {
-      case 'format':
-        this.toolbarAction.emit({ type: 'format', value });
-        break;
-      case 'image':
-        console.log('Image options clicked:', value);
-        break;
-      case 'code':
-        console.log('Code options clicked:', value);
-        break;
-    }
+    this.mapAction[type](value);
   }
-
 }

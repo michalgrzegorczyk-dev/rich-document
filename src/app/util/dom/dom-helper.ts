@@ -17,14 +17,6 @@ export class DomHelper {
     this.#editableDivRefs = refs;
   }
 
-  requestFocus(index: number, options: any = {}): void {
-    if (!this.#editableDivRefs || !this.canFocusImmediately(index)) {
-      this.#pendingFocus.next(index);
-      return;
-    }
-    this.focusBlock(index, options);
-  }
-
   hasPendingFocus(): boolean {
     return this.#pendingFocus.value !== null;
   }
@@ -91,14 +83,6 @@ export class DomHelper {
     );
   }
 
-  private canFocusImmediately(index: number): boolean {
-    return Boolean(
-      this.#editableDivRefs &&
-      this.isValidIndex(index) &&
-      this.getBlockElement(index)
-    );
-  }
-
   private clearPending(): void {
     this.#pendingFocus.next(null);
   }
@@ -138,23 +122,6 @@ export class DomHelper {
     height: 40,
     padding: 16
   };
-
-  getSelectionInfo() {
-    const selection = window.getSelection();
-    if (!selection?.toString().trim()) {
-      return null;
-    }
-
-    return selection.rangeCount > 0 ? {
-      range: selection.getRangeAt(0),
-      rect: selection.getRangeAt(0).getBoundingClientRect()
-    } : null;
-  }
-
-  hasTextSelection(): boolean {
-    const selection = window.getSelection();
-    return Boolean(selection?.toString().trim());
-  }
 
   adjustToolbarPosition(elementBounds: DOMRect): Position {
     const viewport = this.getViewportSize();

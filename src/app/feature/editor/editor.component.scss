@@ -32,7 +32,7 @@
   }
 
   &:empty::before {
-    content: "Type '/' for commands";
+    content: "Write something or type '/' for commands.";
     color: #9ca6af;
     position: absolute;
     pointer-events: none;
