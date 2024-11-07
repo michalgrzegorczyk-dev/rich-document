@@ -12,7 +12,7 @@ export interface Position {
 }
 
 export interface ToolbarActionInput {
-  type: string;
+  type: 'text' | 'img' | 'code' | '';
   position: Position;
 }
 

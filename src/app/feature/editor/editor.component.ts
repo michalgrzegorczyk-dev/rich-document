@@ -14,7 +14,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { filter, debounceTime, map } from 'rxjs';
 import { DomHelper } from '../../util/dom/dom-helper';
-import { EditorBlocks } from './editor.models';
+import { EditorBlocks, BlockEvent } from './editor.models';
 import { Block } from '../../data-access/block.models';
 import { ReactiveFormsModule, FormBuilder, FormArray, FormsModule } from '@angular/forms';
 import { ContenteditableValueAccessorDirective } from '../../util/contenteditable-value-accessor.directive';
@@ -24,6 +24,7 @@ import { ToolbarActionInput } from '../../ui/toolbar/toolbar.models';
 import { EditorService } from './editor.service';
 import { SelectionTrackerDirective } from '../../util/selection-tracker.directive';
 import { SelectionInfo } from '../../util/selection.service';
+import { BlockComponent } from './editor-block/editor-block.component';
 
 @Component({
   selector: 'app-editor',
@@ -35,14 +36,15 @@ import { SelectionInfo } from '../../util/selection.service';
     BypassHtmlPipe,
     FormsModule,
     ToolbarComponent,
-    SelectionTrackerDirective
+    SelectionTrackerDirective,
+    BlockComponent
   ],
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss']
 })
 export class EditorComponent implements AfterViewInit, OnInit {
-  @ViewChildren('editableDiv')
-  editableDivRefs!: QueryList<ElementRef>;
+  @ViewChildren(BlockComponent)
+  blockRefs!: QueryList<BlockComponent>;
 
   @Output()
   editorBlocksChange = new EventEmitter<EditorBlocks>();
@@ -55,7 +57,10 @@ export class EditorComponent implements AfterViewInit, OnInit {
     }
   }
 
-  readonly toolbarAction = signal<ToolbarActionInput>({ type: '', position: { top: 0, left: 0 } });
+  readonly toolbarAction = signal<ToolbarActionInput>({
+    type: '',
+    position: { top: 0, left: 0 }
+  });
 
   readonly #editorService = inject(EditorService);
   readonly #domHelper = inject(DomHelper);
@@ -64,75 +69,80 @@ export class EditorComponent implements AfterViewInit, OnInit {
   formGroup = this.fb.group({
     blocks: this.fb.array([])
   });
+
   firstTime = true;
-
-  ngOnInit(): void {
-    this.formGroup.valueChanges.pipe(
-      debounceTime(1_000),
-      map(() => this.#editorService.mapToEditorBlocks(this.formGroup.value))
-    ).subscribe((value) => {
-      this.editorBlocksChange.emit(value);
-    });
-  }
-
-  ngAfterViewInit(): void {
-    this.#domHelper.setEditableDivRefs(this.editableDivRefs);
-
-    this.editableDivRefs.changes
-      .pipe(
-        filter(() => this.#domHelper.hasPendingFocus())
-      )
-      .subscribe(() => {
-        this.#domHelper.setEditableDivRefs(this.editableDivRefs);
-        const index = this.#domHelper.getPendingIndex();
-        if (index !== null) {
-          this.#domHelper.focusBlock(index);
-        }
-      });
-  }
 
   get blocksFromArray() {
     return this.formGroup.get('blocks') as FormArray;
   }
 
-  onSelectionChange(selectionInfo: SelectionInfo): void {
-    this.toolbarAction.set({
-      type: selectionInfo.type,
-      position: selectionInfo.position
+  ngOnInit(): void {
+    this.formGroup.valueChanges.pipe(
+      debounceTime(1_000),
+      map(() => this.#editorService.mapToEditorBlocks(this.formGroup.value))
+    ).subscribe(value => {
+      this.editorBlocksChange.emit(value);
     });
   }
 
-  onToolbarAction(event: { type: string, value: string }) {
-    console.log(`Toolbar action: ${event.type} - ${event.value}`);
+  ngAfterViewInit(): void {
+    this.blockRefs.changes.pipe(
+      filter(() => this.#domHelper.hasPendingFocus())
+    ).subscribe(() => {
+      const index = this.#domHelper.getPendingIndex();
+      if (index !== null) {
+        this.focusBlock(index);
+      }
+    });
+  }
+
+  private focusBlock(index: number): void {
+    const blockComponent = this.blockRefs.get(index);
+    if (blockComponent) {
+      blockComponent.focus();
+    }
+  }
+
+
+
+
+  onBlockEvent(event: BlockEvent): void {
     switch (event.type) {
-      case 'format':
-        document.execCommand(event.value, false);
+      case 'keydown':
+        this.handleKeydown(event.event, event.index);
         break;
-      case 'image':
-        console.log('Image things.');
-        break;
-      case 'code':
-        console.log('Code things.');
+      case 'selection':
+        this.handleSelection(event.event);
         break;
     }
   }
 
-  addBlock(): void {
-    this.#editorService.addBlock(this.blocksFromArray);
-  }
-
-  removeBlock(index: number): void {
-    this.#editorService.removeBlock(index, this.blocksFromArray);
-  }
-
-  mergeWithPreviousBlock(currentIndex: number): void {
-    this.#editorService.mergeWithPreviousBlock(currentIndex, this.blocksFromArray);
-  }
-
-  onKeydown(event: KeyboardEvent, index: number): void {
+  private handleKeydown(event: KeyboardEvent, index: number): void {
     if (event.key === 'Enter') {
       event.preventDefault();
-      this.addBlock();
+
+      const target = event.target as HTMLElement;
+      const selection = window.getSelection();
+
+      if (selection && target) {
+        // Get text content instead of innerHTML to avoid HTML tags interfering with position
+        const content = target.textContent || '';
+        const cursorPosition = selection.anchorOffset;
+
+        // Handle cursor position correctly
+        if (cursorPosition >= 0 && cursorPosition <= content.length) {
+          const newIndex = this.#editorService.splitBlock(index, this.blocksFromArray, cursorPosition);
+          setTimeout(() => {
+            this.focusBlock(newIndex);
+          }, 10);
+        } else {
+          // Fallback for when cursor position is invalid
+          this.addBlock();
+        }
+      } else {
+        // Fallback for when selection info isn't available
+        this.addBlock();
+      }
       return;
     }
 
@@ -153,6 +163,52 @@ export class EditorComponent implements AfterViewInit, OnInit {
         this.mergeWithPreviousBlock(index);
         return;
       }
+    }
+  }
+
+  private handleSelection(selectionInfo: SelectionInfo): void {
+    this.toolbarAction.set({
+      type: selectionInfo.type,
+      position: selectionInfo.position
+    });
+  }
+
+  onToolbarAction(event: { type: string, value: string }): void {
+    switch (event.type) {
+      case 'format':
+        document.execCommand(event.value, false);
+        break;
+      case 'image':
+        console.log('Image things.');
+        break;
+      case 'code':
+        console.log('Code things.');
+        break;
+    }
+  }
+
+  addBlock(): void {
+    const newIndex = this.#editorService.addBlock(this.blocksFromArray);
+    setTimeout(() => {
+      this.focusBlock(newIndex);
+    }, 10);
+  }
+
+  removeBlock(index: number): void {
+    const focusIndex = this.#editorService.removeBlock(index, this.blocksFromArray);
+    if (focusIndex !== null) {
+      setTimeout(() => {
+        this.focusBlock(focusIndex);
+      }, 10);
+    }
+  }
+
+  mergeWithPreviousBlock(currentIndex: number): void {
+    const focusIndex = this.#editorService.mergeWithPreviousBlock(currentIndex, this.blocksFromArray);
+    if (focusIndex !== null) {
+      setTimeout(() => {
+        this.focusBlock(focusIndex);
+      }, 10);
     }
   }
 }

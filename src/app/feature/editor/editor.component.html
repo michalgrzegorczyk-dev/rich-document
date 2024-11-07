@@ -1,25 +1,22 @@
 <app-toolbar [toolbarActionInput]="toolbarAction()" (toolbarAction)="onToolbarAction($event)" />
 
+<app-toolbar
+  [toolbarActionInput]="toolbarAction()"
+  (toolbarAction)="onToolbarAction($event)"
+/>
+
 <form [formGroup]="formGroup" class="editable-container">
   <div formArrayName="blocks">
-    @for (block of blocksFromArray.controls; track i; let i = $index;) {
-      <div [formGroupName]="i" class="block-container">
-        <div class="hash">#</div>
-        <div #editableDiv
-             formControlName="content"
-             appSelectionTracker
-             (selectionChange)="onSelectionChange($event)"
-             (keydown)="onKeydown($event, i)"
-             contenteditable
-             data-placeholder="Type something..."
-             class="editable-div">
-        </div>
-      </div>
+    @for (control of blocksFromArray.controls; track i; let i = $index) {
+      <app-editor-block
+        [blockForm]="$any(control)"
+        [index]="i"
+        (blockEvent)="onBlockEvent($event)"
+      />
     }
   </div>
 </form>
 
-
-<div class="xxx" (click)="addBlock()"> </div>
+<div class="xxx" (click)="addBlock()"></div>
 
 

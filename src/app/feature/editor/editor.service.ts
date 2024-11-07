@@ -1,6 +1,5 @@
 import { Injectable, inject } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
-import { DomHelper } from '../../util/dom/dom-helper';
 import { EditorBlocks } from './editor.models';
 import { Block } from '../../data-access/block.models';
 
@@ -9,7 +8,6 @@ import { Block } from '../../data-access/block.models';
 })
 export class EditorService {
   private readonly fb = inject(FormBuilder);
-  private readonly domHelper = inject(DomHelper);
 
   initializeForm(blocks: Block[], formGroup: FormGroup): void {
     const formArray = formGroup.get('blocks') as FormArray;
@@ -22,30 +20,38 @@ export class EditorService {
     });
   }
 
-  addBlock(blocksArray: FormArray): void {
-    blocksArray.push(this.fb.group({ content: [''] }));
-    setTimeout(() => {
-      this.domHelper.focusBlock(blocksArray.length - 1);
-    }, 10);
+  addBlock(blocksArray: FormArray, index: number = blocksArray.length, content: string = ''): number {
+    blocksArray.insert(index, this.fb.group({ content: [content] }));
+    return index;
   }
 
-  removeBlock(index: number, blocksArray: FormArray): void {
+  splitBlock(index: number, blocksArray: FormArray, cursorPosition: number): number {
+    const currentBlock = blocksArray.at(index);
+    const content = currentBlock.get('content')?.value || '';
+
+    const beforeCursor = content.slice(0, cursorPosition);
+    const afterCursor = content.slice(cursorPosition);
+
+    currentBlock.patchValue({ content: beforeCursor });
+    this.addBlock(blocksArray, index + 1, afterCursor);
+
+    return index + 1;
+  }
+
+  removeBlock(index: number, blocksArray: FormArray): number | null {
     if (blocksArray.length <= 1) {
       const currentBlock = blocksArray.at(0);
       currentBlock.patchValue({ content: '' });
-      return;
+      return null;
     }
 
     blocksArray.removeAt(index);
-
-    if (index > 0) {
-      this.domHelper.focusBlock(index - 1);
-    }
+    return index > 0 ? index - 1 : null;
   }
 
-  mergeWithPreviousBlock(currentIndex: number, blocksArray: FormArray): void {
+  mergeWithPreviousBlock(currentIndex: number, blocksArray: FormArray): number | null {
     if (currentIndex <= 0) {
-      return;
+      return null;
     }
 
     const currentBlock = blocksArray.at(currentIndex);
@@ -55,7 +61,7 @@ export class EditorService {
     previousBlock.patchValue({ content: previousContent + currentContent });
 
     blocksArray.removeAt(currentIndex);
-    this.domHelper.focusBlock(currentIndex - 1);
+    return currentIndex - 1;
   }
 
   isBlockEmpty(element: HTMLElement): boolean {
