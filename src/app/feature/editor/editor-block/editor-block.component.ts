@@ -64,8 +64,30 @@ export class BlockComponent {
   @Input({ required: true }) index!: number;
   @Output() blockEvent = new EventEmitter<BlockEvent>();
 
-  focus() {
-    this.editableDiv.nativeElement.focus();
+  focus(options: { cursorPosition?: number } = {}) {
+    const element = this.editableDiv.nativeElement;
+    element.focus();
+
+    if (typeof options.cursorPosition === 'number') {
+      const range = document.createRange();
+      const sel = window.getSelection();
+
+      let node = element.firstChild;
+      if (!node) {
+        node = document.createTextNode('');
+        element.appendChild(node);
+      }
+
+      try {
+        range.setStart(node, Math.min(options.cursorPosition, node.textContent?.length || 0));
+        range.collapse(true);
+
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      } catch (error) {
+        console.error('Error setting cursor position:', error);
+      }
+    }
   }
 
   onSelectionChange(selectionInfo: SelectionInfo): void {

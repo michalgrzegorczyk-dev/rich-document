@@ -4,7 +4,6 @@ import {
   EventEmitter,
   ViewChildren,
   QueryList,
-  ElementRef,
   AfterViewInit,
   OnInit,
   inject,
@@ -25,6 +24,11 @@ import { EditorService } from './editor.service';
 import { SelectionTrackerDirective } from '../../util/selection-tracker.directive';
 import { SelectionInfo } from '../../util/selection.service';
 import { BlockComponent } from './editor-block/editor-block.component';
+
+interface MergeResult {
+  index: number;
+  cursorPosition: number;
+}
 
 @Component({
   selector: 'app-editor',
@@ -96,13 +100,12 @@ export class EditorComponent implements AfterViewInit, OnInit {
     });
   }
 
-  private focusBlock(index: number): void {
+  private focusBlock(index: number, options: { cursorPosition?: number } = {}) {
     const blockComponent = this.blockRefs.get(index);
     if (blockComponent) {
-      blockComponent.focus();
+      blockComponent.focus(options);
     }
   }
-
 
 
 
@@ -203,12 +206,14 @@ export class EditorComponent implements AfterViewInit, OnInit {
     }
   }
 
+
   mergeWithPreviousBlock(currentIndex: number): void {
-    const focusIndex = this.#editorService.mergeWithPreviousBlock(currentIndex, this.blocksFromArray);
-    if (focusIndex !== null) {
+    const result:any = this.#editorService.mergeWithPreviousBlock(currentIndex, this.blocksFromArray);
+    if (result) {
       setTimeout(() => {
-        this.focusBlock(focusIndex);
+        this.focusBlock(result.index, { cursorPosition: result.cursorPosition });
       }, 10);
     }
   }
+
 }
