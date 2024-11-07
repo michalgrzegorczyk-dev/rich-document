@@ -139,7 +139,6 @@ export class DomHelper {
     padding: 16
   };
 
-
   getSelectionInfo() {
     const selection = window.getSelection();
     if (!selection?.toString().trim()) {
@@ -155,10 +154,6 @@ export class DomHelper {
   hasTextSelection(): boolean {
     const selection = window.getSelection();
     return Boolean(selection?.toString().trim());
-  }
-
-  unsetSelection(): void {
-    window.getSelection()?.removeAllRanges();
   }
 
   adjustToolbarPosition(elementBounds: DOMRect): Position {

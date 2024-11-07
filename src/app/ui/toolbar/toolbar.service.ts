@@ -1,7 +1,13 @@
 import { Injectable, NgZone, inject } from '@angular/core';
 import { BehaviorSubject, fromEvent, filter } from 'rxjs';
-import { ToolbarState } from './toolbar.models';
-import { EDITOR_SELECTORS } from '../../feature/editor/editor.component';
+import { ToolbarState, Position } from './toolbar.models';
+
+
+export const EDITOR_SELECTORS = {
+  EDITABLE: '.editable-div',
+  TOOLBAR: '.floating-toolbar'
+} as const;
+
 
 const initialToolbarState: ToolbarState = {
   show: false,
@@ -26,20 +32,17 @@ export class ToolbarStateService {
         .pipe(filter(event => !this.isClickInside(event.target as Element)))
         .subscribe(() => {
           this.#ngZone.run(() => {
-            this.hideToolbar();
-          })
+            this.#state.next(initialToolbarState);
+          });
         });
-    })
+    });
   }
 
   private isClickInside(target: Element): boolean {
-    return Boolean(
-      target.closest(EDITOR_SELECTORS.EDITABLE) ||
-      target.closest(EDITOR_SELECTORS.TOOLBAR)
-    );
+    return Boolean(target.closest(EDITOR_SELECTORS.EDITABLE) || target.closest(EDITOR_SELECTORS.TOOLBAR));
   }
 
-  showTextToolbar(position: { top: number; left: number }) {
+  showTextToolbar(position: Position) {
     this.#state.next({
       show: true,
       isTextSelection: true,
@@ -49,7 +52,7 @@ export class ToolbarStateService {
     });
   }
 
-  showImageToolbar(position: { top: number; left: number }) {
+  showImageToolbar(position: Position) {
     this.#state.next({
       show: true,
       isTextSelection: false,
@@ -59,7 +62,7 @@ export class ToolbarStateService {
     });
   }
 
-  showCodeToolbar(position: { top: number; left: number }) {
+  showCodeToolbar(position: Position) {
     this.#state.next({
       show: true,
       isTextSelection: false,
@@ -67,9 +70,5 @@ export class ToolbarStateService {
       isCodeBlock: true,
       position
     });
-  }
-
-  hideToolbar() {
-    this.#state.next(initialToolbarState);
   }
 }

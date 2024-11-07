@@ -1,86 +1,48 @@
-import { Component, Output, EventEmitter, ChangeDetectorRef, inject } from '@angular/core';
-import { NgIf, AsyncPipe } from '@angular/common';
-import { ToolbarState } from './toolbar.models';
+import { Component, Output, EventEmitter, inject, Input } from '@angular/core';
+import { NgIf, AsyncPipe, NgStyle } from '@angular/common';
 import { ToolbarStateService } from './toolbar.service';
+import { ToolbarActionInput, ToolbarActionOutput, Position } from './toolbar.models';
 
 @Component({
   selector: 'app-toolbar',
   templateUrl: './toolbar.component.html',
   styleUrls: ['./toolbar.component.scss'],
-  imports: [NgIf, AsyncPipe],
+  imports: [NgIf, AsyncPipe, NgStyle],
   standalone: true
 })
 export class ToolbarComponent {
-  @Output() toolbarAction = new EventEmitter<{type: string, value: string}>();
+  @Output()
+  toolbarAction = new EventEmitter<ToolbarActionOutput>();
 
-  toolbarStateService = inject(ToolbarStateService);
-  cdr = inject(ChangeDetectorRef);
-  state$ = this.toolbarStateService.state$;
+  readonly #toolbarStateService = inject(ToolbarStateService);
+  readonly toolbarState$ = this.#toolbarStateService.state$;
 
-  selectedImageElement: HTMLImageElement | null = null;
-
-  toolbarState: ToolbarState = {
-    show: false,
-    isTextSelection: false,
-    isImageSelected: false,
-    isCodeBlock: false,
-    position: { top: 0, left: 0 }
+  // make map to function for actions
+  map : any = {
+    'text': (position:Position) => this.#toolbarStateService.showTextToolbar(position),
+    'img': (position: Position) => this.#toolbarStateService.showImageToolbar(position),
+    'code': (position: Position) =>this.#toolbarStateService.showCodeToolbar(position)
   };
 
-
-  handleAction(type: string, value: string) {
-    console.log(`Toolbar action: ${type} - ${value}`);
-    this.toolbarActionx({ type, value });
+  @Input()
+  set toolbarType(action: ToolbarActionInput) {
+    this.map[action.type](action.position);
   }
 
-  toolbarActionx(event: {type: string, value: string}) {
+  handleAction(type: string, value: string): void {
+    console.log(`Toolbar action: ${type} - ${value}`);
 
-    console.log(`Toolbar action: ${event.type} - ${event.value}`); // General log for any toolbar action
-    switch (event.type) {
+    switch (type) {
       case 'format':
-        this.formatText(event.value as 'bold' | 'italic');
+        this.toolbarAction.emit({ type: 'format', value });
         break;
       case 'image':
-        this.handleImageOptions(event.value);
+        console.log('Image options clicked:', value);
         break;
       case 'code':
-        this.handleCodeOptions(event.value);
+        console.log('Code options clicked:', value);
         break;
     }
-  }
-
-
-  formatText(format: 'bold' | 'italic') {
-    document.execCommand(format, false);
-  }
-
-  private handleCodeOptions(value: string) {
-
-  }
-
-
-
-  private handleImageOptions(value: string): void {
-    console.log("Image options clicked:", value);
-    if (this.selectedImageElement) {
-      this.showImageEditingToolbar(this.selectedImageElement);
-    } else {
-      console.log("No image is selected when trying to access image options.");
-    }
-  }
-
-  private showImageEditingToolbar(imageElement: HTMLImageElement): void {
-    console.log("Displaying image editing toolbar for:", imageElement.src);
-    // Here you can expand functionality, for now, it logs the action
-    const rect = imageElement.getBoundingClientRect();
-    this.toolbarState = {
-      show: true,
-      isTextSelection: false,
-      isImageSelected: true,
-      isCodeBlock: false,
-      position: { top: rect.bottom + 10, left: rect.left }
-    };
-    this.cdr.detectChanges();
   }
 
 }
