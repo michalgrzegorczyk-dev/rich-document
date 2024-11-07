@@ -21,6 +21,9 @@ import { ContenteditableValueAccessorDirective } from '../../util/contenteditabl
 import { BypassHtmlPipe } from '../../util/bypass-html.pipe';
 import { ToolbarComponent } from '../../ui/toolbar/toolbar.component';
 import { ToolbarActionInput } from '../../ui/toolbar/toolbar.models';
+import { EditorService } from './editor.service';
+import { SelectionTrackerDirective } from '../../util/selection-tracker.directive';
+import { SelectionInfo } from '../../util/selection.service';
 
 @Component({
   selector: 'app-editor',
@@ -31,7 +34,8 @@ import { ToolbarActionInput } from '../../ui/toolbar/toolbar.models';
     ContenteditableValueAccessorDirective,
     BypassHtmlPipe,
     FormsModule,
-    ToolbarComponent
+    ToolbarComponent,
+    SelectionTrackerDirective
   ],
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss']
@@ -44,36 +48,28 @@ export class EditorComponent implements AfterViewInit, OnInit {
   editorBlocksChange = new EventEmitter<EditorBlocks>();
 
   @Input()
-  set editorBlocks(blocks: Block[]) {//todo should be editor blocks, later, then map
+  set editorBlocks(blocks: Block[]) {
     if (this.firstTime) {
-      const formArray = this.formGroup.get('blocks') as FormArray;
-      formArray.clear();
-
-      blocks.forEach((block) => {
-        formArray.push(this.fb.group({
-          content: [block.content]
-        }));
-      });
+      this.#editorService.initializeForm(blocks, this.formGroup);
       this.firstTime = false;
     }
   }
 
   readonly toolbarAction = signal<ToolbarActionInput>({ type: '', position: { top: 0, left: 0 } });
 
-  fb = inject(FormBuilder);
+  readonly #editorService = inject(EditorService);
   readonly #domHelper = inject(DomHelper);
+  readonly fb = inject(FormBuilder);
+
   formGroup = this.fb.group({
     blocks: this.fb.array([])
   });
   firstTime = true;
 
-
   ngOnInit(): void {
     this.formGroup.valueChanges.pipe(
       debounceTime(1_000),
-      map(() => {
-        return this.formGroup.value as EditorBlocks;
-      })
+      map(() => this.#editorService.mapToEditorBlocks(this.formGroup.value))
     ).subscribe((value) => {
       this.editorBlocksChange.emit(value);
     });
@@ -95,9 +91,15 @@ export class EditorComponent implements AfterViewInit, OnInit {
       });
   }
 
-
   get blocksFromArray() {
     return this.formGroup.get('blocks') as FormArray;
+  }
+
+  onSelectionChange(selectionInfo: SelectionInfo): void {
+    this.toolbarAction.set({
+      type: selectionInfo.type,
+      position: selectionInfo.position
+    });
   }
 
   onToolbarAction(event: { type: string, value: string }) {
@@ -108,7 +110,6 @@ export class EditorComponent implements AfterViewInit, OnInit {
         break;
       case 'image':
         console.log('Image things.');
-        //todo, i have block id, search, oldvalue, new value, transoform
         break;
       case 'code':
         console.log('Code things.');
@@ -117,39 +118,15 @@ export class EditorComponent implements AfterViewInit, OnInit {
   }
 
   addBlock(): void {
-    this.blocksFromArray.push(this.fb.group({ content: [''] }));
-    setTimeout(() => {
-      this.#domHelper.focusBlock(this.blocksFromArray.length - 1);
-    }, 10);
+    this.#editorService.addBlock(this.blocksFromArray);
   }
 
   removeBlock(index: number): void {
-    if (this.blocksFromArray.length <= 1) {
-      const currentBlock = this.blocksFromArray.at(0);
-      currentBlock.patchValue({ content: '' });
-      return;
-    }
-
-    this.blocksFromArray.removeAt(index);
-
-    if (index > 0) {
-      this.#domHelper.focusBlock(index - 1);
-    }
+    this.#editorService.removeBlock(index, this.blocksFromArray);
   }
 
   mergeWithPreviousBlock(currentIndex: number): void {
-    if (currentIndex <= 0) {
-      return;
-    }
-
-    const currentBlock = this.blocksFromArray.at(currentIndex);
-    const previousBlock = this.blocksFromArray.at(currentIndex - 1);
-    const currentContent = currentBlock.get('content')?.value || '';
-    const previousContent = previousBlock.get('content')?.value || '';
-    previousBlock.patchValue({ content: previousContent + currentContent });
-
-    this.blocksFromArray.removeAt(currentIndex);
-    this.#domHelper.focusBlock(currentIndex - 1);
+    this.#editorService.mergeWithPreviousBlock(currentIndex, this.blocksFromArray);
   }
 
   onKeydown(event: KeyboardEvent, index: number): void {
@@ -163,7 +140,7 @@ export class EditorComponent implements AfterViewInit, OnInit {
       const target = event.target as HTMLElement;
       const selection = window.getSelection();
       const isAtStart = selection?.anchorOffset === 0;
-      const isEmpty = this.isBlockEmpty(target);
+      const isEmpty = this.#editorService.isBlockEmpty(target);
 
       if (isEmpty && this.blocksFromArray.length > 1) {
         event.preventDefault();
@@ -178,52 +155,4 @@ export class EditorComponent implements AfterViewInit, OnInit {
       }
     }
   }
-
-  onMouseUp(event: MouseEvent): void {
-    const selection = window.getSelection();
-    if (!selection || selection.isCollapsed) return;
-
-    const selectedText = selection.toString().trim();
-
-    if (selectedText) {
-      const rect = this.#domHelper.getElementBounds(event.target as HTMLElement);
-      const position = this.#domHelper.adjustToolbarPosition(rect);
-      this.toolbarAction.set({ type: 'text', position });
-    }
-  }
-
-  onClick(event: MouseEvent): void {
-    const target = event.target as HTMLElement;
-
-    if (target.tagName.toLowerCase() === 'img') {
-      const rect = this.#domHelper.getElementBounds(event.target as HTMLElement);
-      const position = this.#domHelper.adjustToolbarPosition(rect);
-      this.toolbarAction.set({ type: 'img', position });
-      console.log('Image clicked');
-      return;
-    }
-
-    const codeBlock = target.closest('pre code') || target.closest('pre');
-    if (codeBlock) {
-      console.log('Code block clicked');
-      return;
-    }
-
-    const isInCode = target.closest('code');
-    if (isInCode) {
-      console.log('Code clicked');
-      return;
-    }
-  }
-
-  private isBlockEmpty(element: HTMLElement): boolean {
-    const content = element.innerHTML.trim();
-    return (
-      content === '' ||
-      content === '<br>' ||
-      content === '&nbsp;' ||
-      element.textContent?.trim() === ''
-    );
-  }
-
 }

@@ -7,8 +7,8 @@
         <div class="hash">#</div>
         <div #editableDiv
              formControlName="content"
-             (click)="onClick($event)"
-             (mouseup)="onMouseUp($event)"
+             appSelectionTracker
+             (selectionChange)="onSelectionChange($event)"
              (keydown)="onKeydown($event, i)"
              contenteditable
              data-placeholder="Type something..."
