@@ -1,11 +1,8 @@
-import { Component, EventEmitter, Input, Output, inject, ViewChild, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ViewChild, Input, Output, ElementRef, EventEmitter, Component } from '@angular/core';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { SelectionTrackerDirective } from '../../../util/selection-tracker.directive';
-import { ContenteditableValueAccessorDirective } from '../../../util/contenteditable-value-accessor.directive';
-import { EditorService } from '../editor.service';
-import { SelectionInfo } from '../../../util/selection.service';
 import { BlockEvent } from '../editor.models';
+import { CommonModule } from '@angular/common';
+import { ContenteditableValueAccessorDirective } from '../../../util/contenteditable-value-accessor.directive';
 
 @Component({
   selector: 'app-editor-block',
@@ -13,20 +10,18 @@ import { BlockEvent } from '../editor.models';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    ContenteditableValueAccessorDirective,
-    SelectionTrackerDirective
+    ContenteditableValueAccessorDirective
   ],
   template: `
     <div [formGroup]="blockForm" class="block-container">
       <div class="hash">#</div>
       <div #editableDiv
            formControlName="content"
-           appSelectionTracker
-           (selectionChange)="onSelectionChange($event)"
            (keydown)="onKeydown($event)"
            contenteditable
            data-placeholder="Type something..."
-           class="editable-div">
+           class="editable-div"
+           [style.white-space]="'pre-wrap'">
       </div>
     </div>
   `,
@@ -49,6 +44,8 @@ import { BlockEvent } from '../editor.models';
       padding: 8px;
       border: 1px solid #ddd;
       outline: none;
+      white-space: pre-wrap;
+      word-wrap: break-word;
 
       &[data-placeholder]:empty:before {
         content: attr(data-placeholder);
@@ -59,44 +56,10 @@ import { BlockEvent } from '../editor.models';
   `]
 })
 export class BlockComponent {
-  @ViewChild('editableDiv') editableDiv!: ElementRef;
+  @ViewChild('editableDiv') editableDiv!: ElementRef<HTMLDivElement>;
   @Input({ required: true }) blockForm!: FormGroup;
   @Input({ required: true }) index!: number;
   @Output() blockEvent = new EventEmitter<BlockEvent>();
-
-  focus(options: { cursorPosition?: number } = {}) {
-    const element = this.editableDiv.nativeElement;
-    element.focus();
-
-    if (typeof options.cursorPosition === 'number') {
-      const range = document.createRange();
-      const sel = window.getSelection();
-
-      let node = element.firstChild;
-      if (!node) {
-        node = document.createTextNode('');
-        element.appendChild(node);
-      }
-
-      try {
-        range.setStart(node, Math.min(options.cursorPosition, node.textContent?.length || 0));
-        range.collapse(true);
-
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-      } catch (error) {
-        console.error('Error setting cursor position:', error);
-      }
-    }
-  }
-
-  onSelectionChange(selectionInfo: SelectionInfo): void {
-    this.blockEvent.emit({
-      type: 'selection',
-      index: this.index,
-      event: selectionInfo
-    });
-  }
 
   onKeydown(event: KeyboardEvent): void {
     this.blockEvent.emit({

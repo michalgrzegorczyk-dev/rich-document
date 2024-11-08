@@ -1,80 +1,69 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
-import { EditorBlocks } from './editor.models';
-import { Block } from '../../data-access/block.models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class EditorService {
-  private readonly fb = inject(FormBuilder);
+  constructor(private fb: FormBuilder) {}
 
-  initializeForm(blocks: Block[], formGroup: FormGroup): void {
-    const formArray = formGroup.get('blocks') as FormArray;
-    formArray.clear();
-
-    blocks.forEach((block) => {
-      formArray.push(this.fb.group({
+  initializeForm(blocks: any[], formGroup: FormGroup): void {
+    const blocksArray = formGroup.get('blocks') as FormArray;
+    blocks.forEach(block => {
+      blocksArray.push(this.fb.group({
         content: [block.content]
       }));
     });
   }
 
-  addBlock(blocksArray: FormArray, index: number = blocksArray.length, content: string = ''): number {
-    blocksArray.insert(index, this.fb.group({ content: [content] }));
-    return index;
+  mapToEditorBlocks(value: any): any {
+    return {
+      blocks: value.blocks.map((block: any) => ({
+        content: block.content
+      }))
+    };
   }
 
-  splitBlock(index: number, blocksArray: FormArray, cursorPosition: number): number {
-    const currentBlock = blocksArray.at(index);
-    const content = currentBlock.get('content')?.value || '';
+  splitBlock(element: HTMLElement, index: number, blocksArray: FormArray): void {
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return;
 
-    const beforeCursor = content.slice(0, cursorPosition);
-    const afterCursor = content.slice(cursorPosition);
+    const range = selection.getRangeAt(0);
+    if (!element.contains(range.startContainer)) return;
 
+    // Store the current block's HTML
+    const fullContent = element.innerHTML;
+
+    // Create a temporary div to work with the content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = fullContent;
+
+    // Create a range that represents everything up to the cursor
+    const beforeRange = document.createRange();
+    beforeRange.setStart(element, 0);
+    beforeRange.setEnd(range.startContainer, range.startOffset);
+
+    // Create a temp element to extract HTML before cursor
+    const beforeTemp = document.createElement('div');
+    beforeTemp.appendChild(beforeRange.cloneContents());
+    const beforeCursor = beforeTemp.innerHTML;
+
+    // Get the HTML after the cursor
+    const afterTemp = document.createElement('div');
+    const afterRange = document.createRange();
+    afterRange.setStart(range.startContainer, range.startOffset);
+    afterRange.setEnd(element, element.childNodes.length);
+    afterTemp.appendChild(afterRange.cloneContents());
+    const afterCursor = afterTemp.innerHTML;
+
+    // Update current block with content before cursor
+    const currentBlock = blocksArray.at(index) as FormGroup;
     currentBlock.patchValue({ content: beforeCursor });
-    this.addBlock(blocksArray, index + 1, afterCursor);
 
-    return index + 1;
-  }
-
-  removeBlock(index: number, blocksArray: FormArray): number | null {
-    if (blocksArray.length <= 1) {
-      const currentBlock = blocksArray.at(0);
-      currentBlock.patchValue({ content: '' });
-      return null;
-    }
-
-    blocksArray.removeAt(index);
-    return index > 0 ? index - 1 : null;
-  }
-
-  mergeWithPreviousBlock(currentIndex: number, blocksArray: FormArray): number | null {
-    if (currentIndex <= 0) {
-      return null;
-    }
-
-    const currentBlock = blocksArray.at(currentIndex);
-    const previousBlock = blocksArray.at(currentIndex - 1);
-    const currentContent = currentBlock.get('content')?.value || '';
-    const previousContent = previousBlock.get('content')?.value || '';
-    previousBlock.patchValue({ content: previousContent + currentContent });
-
-    blocksArray.removeAt(currentIndex);
-    return currentIndex - 1;
-  }
-
-  isBlockEmpty(element: HTMLElement): boolean {
-    const content = element.innerHTML.trim();
-    return (
-      content === '' ||
-      content === '<br>' ||
-      content === '&nbsp;' ||
-      element.textContent?.trim() === ''
-    );
-  }
-
-  mapToEditorBlocks(value: any): EditorBlocks {
-    return value as EditorBlocks;
+    // Create and insert new block with content after cursor
+    const newBlock = this.fb.group({
+      content: [afterCursor]
+    });
+    blocksArray.insert(index + 1, newBlock);
   }
 }

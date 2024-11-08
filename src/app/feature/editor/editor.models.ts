@@ -1,18 +1,8 @@
-import { SelectionInfo } from '../../util/selection.service';
-
-export interface KeydownBlockEvent {
+export interface BlockEvent {
   type: 'keydown';
-  index: number;
   event: KeyboardEvent;
-}
-
-export interface SelectionBlockEvent {
-  type: 'selection';
   index: number;
-  event: SelectionInfo;
 }
-
-export type BlockEvent = KeydownBlockEvent | SelectionBlockEvent;
 
 export interface EditorBlocks {
   blocks: {
