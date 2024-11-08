@@ -1,0 +1,1416 @@
+import { Component } from '@angular/core';
+import { RichDocumentComponent } from './feature/rich-document/rich-document.component';
+
+@Component({
+  standalone: true,
+  imports: [RichDocumentComponent],
+  selector: 'app-root',
+  template: '<app-rich-document />',
+  styles: [`
+      :host {
+          padding: 50px;
+          display: block;
+      }
+  `]
+})
+export class AppComponent {
+}
+
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+  ],
+};
+
+export type BlockType = 'text' | 'image' | 'code';
+
+export interface Block {
+  // id: number;
+  // type: BlockType; // ?
+  content: string;
+}
+
+import { Injectable, signal } from '@angular/core';
+import { Block } from './block.models';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class BlockStore {
+  readonly blocks = signal<Block[]>([]);
+
+  constructor() {
+    const blocks = localStorage.getItem('blocks');
+    if (blocks) {
+      this.blocks.set(JSON.parse(blocks));
+    }
+  }
+
+  setBlocks(blocks: any) {
+    this.blocks.set(blocks);
+    localStorage.setItem('blocks', JSON.stringify(blocks));
+  }
+}
+
+import { ViewChild, Input, Output, ElementRef, EventEmitter, Component } from '@angular/core';
+import { FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { BlockEvent } from '../editor.models';
+import { CommonModule } from '@angular/common';
+import { ContenteditableValueAccessorDirective } from '../../../util/contenteditable-value-accessor.directive';
+
+@Component({
+  selector: 'app-editor-block',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    ContenteditableValueAccessorDirective
+  ],
+  template: `
+    <div [formGroup]="blockForm" class="block-container">
+      <div class="hash">#</div>
+      <div #editableDiv
+           formControlName="content"
+           (keydown)="onKeydown($event)"
+           contenteditable
+           data-placeholder="Type something..."
+           class="editable-div"
+           [style.white-space]="'pre-wrap'">
+      </div>
+    </div>
+  `,
+  styles: [`
+    .block-container {
+      display: flex;
+      align-items: flex-start;
+      position: relative;
+    }
+
+    .hash {
+      position: absolute;
+      left: -24px;
+      color: #666;
+    }
+
+    .editable-div {
+      flex: 1;
+      min-height: 24px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      outline: none;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+
+      &[data-placeholder]:empty:before {
+        content: attr(data-placeholder);
+        color: #999;
+        pointer-events: none;
+      }
+    }
+  `]
+})
+export class BlockComponent {
+  @ViewChild('editableDiv') editableDiv!: ElementRef<HTMLDivElement>;
+  @Input({ required: true }) blockForm!: FormGroup;
+  @Input({ required: true }) index!: number;
+  @Output() blockEvent = new EventEmitter<BlockEvent>();
+
+  onKeydown(event: KeyboardEvent): void {
+    this.blockEvent.emit({
+      type: 'keydown',
+      index: this.index,
+      event
+    });
+  }
+}
+
+<app-toolbar
+  [toolbarActionInput]="toolbarAction()"
+  (toolbarAction)="onToolbarAction($event)"
+/>
+
+<form [formGroup]="formGroup" class="editable-container">
+  <div formArrayName="blocks">
+    @for (control of blocksFromArray.controls; track i; let i = $index) {
+      <app-editor-block
+        [blockForm]="$any(control)"
+        [index]="i"
+        (blockEvent)="onBlockEvent($event)"
+      />
+    }
+  </div>
+</form>
+
+<!--<div class="xxx" (click)="addBlock(blocksFromArray.length + 1)"></div>-->
+
+.xxx {
+  background-color: white;
+  height: 100px;
+  width: 100%;
+}
+
+
+.editable-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.editable-div {
+  position: relative;
+  min-height: 28px;
+  padding: 0px 0px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #292d34;
+  transition: all 0.15s ease;
+  cursor: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+
+  &:focus {
+    outline: none;
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  &:empty::before {
+    content: "Write something or type '/' for commands.";
+    color: #9ca6af;
+    position: absolute;
+    pointer-events: none;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 0 0 2px rgba(55, 125, 255, 0.2);
+    }
+
+    &.selected {
+      box-shadow: 0 0 0 2px #377dff, 0 4px 12px rgba(55, 125, 255, 0.15);
+    }
+  }
+
+  pre.code-block {
+    background: #f6f8fa;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 8px 0;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+    line-height: 1.45;
+    overflow-x: auto;
+    cursor: text;
+
+    &:hover {
+      background: #f0f3f5;
+    }
+
+    &.selected {
+      box-shadow: 0 0 0 2px #377dff, 0 4px 12px rgba(55, 125, 255, 0.15);
+    }
+
+    code {
+      display: block;
+      color: #24292e;
+      tab-size: 2;
+    }
+  }
+}
+
+.ez2 {
+  visibility: hidden;
+}
+
+.ez1:hover {
+  .ez2 {
+    visibility: visible;
+  }
+}
+
+
+.block-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.hash {
+  position: absolute;
+  left: -24px;
+  color: #666;
+}
+
+.editable-div {
+  flex: 1;
+  min-height: 24px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  outline: none;
+}
+
+import {
+  Component,
+  Output,
+  EventEmitter,
+  ViewChildren,
+  QueryList,
+  AfterViewInit,
+  OnInit,
+  inject,
+  Input,
+  signal,
+} from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { filter, debounceTime, map, BehaviorSubject, withLatestFrom } from 'rxjs';
+import { DomHelper } from '../../util/dom/dom-helper';
+import { EditorBlocks, BlockEvent } from './editor.models';
+import { Block } from '../../data-access/block.models';
+import { ReactiveFormsModule, FormBuilder, FormArray, FormsModule, FormGroup } from '@angular/forms';
+import { ContenteditableValueAccessorDirective } from '../../util/contenteditable-value-accessor.directive';
+import { BypassHtmlPipe } from '../../util/bypass-html.pipe';
+import { ToolbarComponent } from '../../ui/toolbar/toolbar.component';
+import { ToolbarActionInput } from '../../ui/toolbar/toolbar.models';
+import { EditorService } from './editor.service';
+import { BlockComponent } from './editor-block/editor-block.component';
+
+interface FocusInstruction {
+  index: number;
+  cursorPosition?: number;
+}
+
+@Component({
+  selector: 'app-editor',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    ContenteditableValueAccessorDirective,
+    BypassHtmlPipe,
+    FormsModule,
+    ToolbarComponent,
+    BlockComponent,
+  ],
+  templateUrl: './editor.component.html',
+  styleUrls: ['./editor.component.scss']
+})
+export class EditorComponent implements AfterViewInit, OnInit {
+  @ViewChildren(BlockComponent)
+  blockRefs!: QueryList<BlockComponent>;
+
+  @Output()
+  editorBlocksChange = new EventEmitter<EditorBlocks>();
+
+  @Input()
+  set editorBlocks(blocks: Block[]) {
+    if (this.firstTime) {
+      this.#editorService.initializeForm(blocks, this.formGroup);
+      this.firstTime = false;
+    }
+  }
+
+  readonly toolbarAction = signal<ToolbarActionInput>({
+    type: '',
+    position: { top: 0, left: 0 }
+  });
+
+  readonly #focusInstruction = new BehaviorSubject<FocusInstruction | null>(null);
+  readonly focusInstruction$ = this.#focusInstruction.asObservable();
+
+  readonly #editorService = inject(EditorService);
+  readonly fb = inject(FormBuilder);
+
+  formGroup = this.fb.group({
+    blocks: this.fb.array([])
+  });
+
+  firstTime = true;
+
+  get blocksFromArray() {
+    return this.formGroup.get('blocks') as FormArray;
+  }
+
+  ngOnInit(): void {
+    this.formGroup.valueChanges.pipe(
+      debounceTime(1_000),
+      map(() => this.#editorService.mapToEditorBlocks(this.formGroup.value))
+    ).subscribe(value => {
+      this.editorBlocksChange.emit(value);
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.blockRefs.changes.pipe(
+      withLatestFrom(this.focusInstruction$),
+      filter(([_, instruction]) => instruction !== null)
+    ).subscribe(([_, instruction]) => {
+      if (instruction) {
+        this.focusBlock(instruction.index, instruction.cursorPosition);
+        this.#focusInstruction.next(null);
+      }
+    });
+  }
+
+  onBlockEvent(event: BlockEvent): void {
+    switch (event.type) {
+      case 'keydown':
+        this.handleKeydown(event.event, event.index);
+        break;
+    }
+  }
+
+  private handleKeydown(event: KeyboardEvent, index: number): void {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const target = event.target as HTMLElement;
+      this.#editorService.splitBlock(target, index, this.blocksFromArray);
+      this.#focusInstruction.next({ index: index + 1 });
+      return;
+    }
+
+    if (event.key === 'Backspace') {
+      const target = event.target as HTMLElement;
+      const selection = window.getSelection();
+
+      if (!selection?.rangeCount) return;
+      const range = selection.getRangeAt(0);
+
+      // Handle empty block case
+      const isEmpty = target.textContent?.trim() === '' && !target.querySelector('img');
+      if (isEmpty && index > 0) {
+        event.preventDefault();
+        this.removeEmptyBlock(index);
+        return;
+      }
+
+      // Handle merge case
+      const isAtStart = this.#editorService.isCursorAtStart(target, range);
+      if (isAtStart && index > 0) {
+        event.preventDefault();
+        this.mergeWithPreviousBlock(index);
+        return;
+      }
+    }
+  }
+
+  private removeEmptyBlock(index: number): void {
+    const previousIndex = index - 1;
+    if (previousIndex >= 0) {
+      const previousBlock = this.blocksFromArray.at(previousIndex) as FormGroup;
+      const previousContent = previousBlock.get('content')?.value || '';
+
+      // Create a temp element to get content length
+      const tempElement = document.createElement('div');
+      tempElement.innerHTML = previousContent;
+      const cursorPosition = tempElement.innerHTML.length;
+
+      this.blocksFromArray.removeAt(index);
+
+      // Focus previous block with cursor at the end
+      this.#focusInstruction.next({
+        index: previousIndex,
+        cursorPosition
+      });
+    }
+  }
+
+  onToolbarAction(event: { type: string, value: string }): void {
+    switch (event.type) {
+      case 'format':
+        document.execCommand(event.value, false);
+        break;
+      case 'image':
+        console.log('Image things.');
+        break;
+      case 'code':
+        console.log('Code things.');
+        break;
+    }
+  }
+
+
+// In editor.component.ts
+  private focusBlock(index: number, cursorPosition?: number): void {
+    const blockComponent = this.blockRefs.get(index);
+    if (!blockComponent) return;
+
+    const element = blockComponent.editableDiv.nativeElement;
+    element.focus();
+
+    if (typeof cursorPosition === 'number') {
+      const selection = window.getSelection();
+      const range = document.createRange();
+
+      if (cursorPosition >= element.innerHTML.length) {
+        range.selectNodeContents(element);
+        range.collapse(false);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        return;
+      }
+
+      let currentPos = 0;
+      const walker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT
+      );
+
+      let currentNode: Node | null = walker.nextNode();
+      let found = false;
+
+      while (currentNode && !found) {
+        // Handle IMG elements
+        if (currentNode.nodeType === Node.ELEMENT_NODE && (currentNode as Element).tagName === 'IMG') {
+          if (currentPos === cursorPosition) {
+            const parentElement = currentNode.parentElement;
+            if (parentElement) {
+              // Convert NodeList to Array and use type assertion
+              const children = Array.from(parentElement.childNodes) as Node[];
+              const nodeIndex = children.findIndex(node => node === currentNode);
+              if (nodeIndex !== -1) {
+                range.setStart(parentElement, nodeIndex);
+                range.setEnd(parentElement, nodeIndex);
+                found = true;
+              }
+            }
+            break;
+          }
+          currentPos += (currentNode as Element).outerHTML.length;
+        }
+        // Handle text nodes
+        else if (currentNode.nodeType === Node.TEXT_NODE && currentNode.textContent) {
+          const length = currentNode.textContent.length;
+          if (currentPos + length >= cursorPosition) {
+            range.setStart(currentNode, cursorPosition - currentPos);
+            range.setEnd(currentNode, cursorPosition - currentPos);
+            found = true;
+            break;
+          }
+          currentPos += length;
+        }
+        currentNode = walker.nextNode();
+      }
+
+      // Default to end if position not found
+      if (!found) {
+        range.selectNodeContents(element);
+        range.collapse(false);
+      }
+
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+  }
+
+
+
+
+  mergeWithPreviousBlock(currentIndex: number): void {
+    const currentBlock = this.blocksFromArray.at(currentIndex) as FormGroup;
+    const previousBlock = this.blocksFromArray.at(currentIndex - 1) as FormGroup;
+
+    const currentContent = currentBlock.get('content')?.value || '';
+    const previousContent = previousBlock.get('content')?.value || '';
+
+    // Set cursor position to end of previous content
+    const cursorPosition = previousContent.length;
+
+    // Merge contents
+    previousBlock.patchValue({ content: previousContent + currentContent });
+    this.blocksFromArray.removeAt(currentIndex);
+
+    // Focus with cursor at merge point
+    this.#focusInstruction.next({
+      index: currentIndex - 1,
+      cursorPosition
+    });
+  }
+
+
+
+  removeBlock(index: number): void {
+    const previousIndex = index - 1;
+    if (previousIndex >= 0) {
+      // Get the content length of the previous block to position cursor at the end
+      const previousBlock = this.blocksFromArray.at(previousIndex) as FormGroup;
+      const previousContent = previousBlock.get('content')?.value || '';
+      const cursorPosition = previousContent.length;
+
+      // Remove current block and focus previous with cursor at end
+      this.blocksFromArray.removeAt(index);
+      this.#focusInstruction.next({
+        index: previousIndex,
+        cursorPosition
+      });
+    }
+  }
+  addBlock(index: number): void {
+    const newBlock = this.fb.group({
+      content: ['']
+    });
+    this.blocksFromArray.insert(index, newBlock);
+    this.#focusInstruction.next({ index });
+  }
+}
+
+export interface BlockEvent {
+  type: 'keydown';
+  event: KeyboardEvent;
+  index: number;
+}
+
+export interface EditorBlocks {
+  blocks: {
+    content: string;
+  }[];
+}
+
+import { Injectable } from '@angular/core';
+import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class EditorService {
+  constructor(private fb: FormBuilder) {}
+
+  splitBlock(element: HTMLElement, index: number, blocksArray: FormArray): void {
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    if (!element.contains(range.startContainer)) return;
+
+    // Get the current content
+    const beforeRange = document.createRange();
+    const afterRange = document.createRange();
+
+    // Set ranges correctly
+    beforeRange.setStartBefore(element.firstChild || element);
+    beforeRange.setEnd(range.startContainer, range.startOffset);
+
+    afterRange.setStart(range.startContainer, range.startOffset);
+    afterRange.setEndAfter(element.lastChild || element);
+
+    // Create temporary containers
+    const beforeContainer = document.createElement('div');
+    const afterContainer = document.createElement('div');
+
+    beforeContainer.appendChild(beforeRange.cloneContents());
+    afterContainer.appendChild(afterRange.cloneContents());
+
+    // Update blocks
+    const currentBlock = blocksArray.at(index) as FormGroup;
+    const newBlock = this.fb.group({
+      content: [afterContainer.innerHTML]
+    });
+
+    currentBlock.patchValue({ content: beforeContainer.innerHTML });
+    blocksArray.insert(index + 1, newBlock);
+  }
+
+  mapToEditorBlocks(value: any): any {
+    return {
+      blocks: value.blocks.map((block: any) => ({
+        content: block.content
+      }))
+    };
+  }
+
+  isCursorAtStart(element: HTMLElement, range: Range): boolean {
+    // Check if there's any non-whitespace content before the cursor
+    const beforeRange = document.createRange();
+    beforeRange.setStart(element, 0);
+    beforeRange.setEnd(range.startContainer, range.startOffset);
+
+    // Create temp div to check content before cursor
+    const tempDiv = document.createElement('div');
+    tempDiv.appendChild(beforeRange.cloneContents());
+
+    // If there's no content or only whitespace before cursor
+    return !tempDiv.textContent?.trim() && !tempDiv.querySelector('img');
+  }
+
+  initializeForm(blocks: any[], formGroup: FormGroup): void {
+    const blocksArray = formGroup.get('blocks') as FormArray;
+    blocks.forEach(block => {
+      blocksArray.push(this.fb.group({
+        content: [block.content]
+      }));
+    });
+  }
+}
+
+<app-header title="Interview Prep" description="Study notes for my next job interviews. Things I learned from mock interviews, coding challenges I solved, and questions that surprised me. Also jotting down what to say when they ask about my past projects and future goals." author="Michal Grzegorczyk" />
+<app-editor [editorBlocks]="blocks()" (editorBlocksChange)="onUpdateBlocks($event)" />
+
+:host {
+  display: block;
+  padding: 20px;
+  border: 1px solid #ccc;
+}
+
+app-header {
+  display: block;
+  margin-bottom: 60px;
+}
+
+import { Component, inject, } from '@angular/core';
+import { AsyncPipe, NgForOf, JsonPipe } from '@angular/common';
+import { EditorComponent } from '../editor/editor.component';
+import { HeaderComponent } from '../../ui/header/header.component';
+import { ToolbarComponent } from '../../ui/toolbar/toolbar.component';
+import { BlockStore } from '../../data-access/block.store';
+import { EditorBlocks } from '../editor/editor.models';
+
+const COMPONENTS = [HeaderComponent, ToolbarComponent, EditorComponent, EditorComponent];
+const DIRECTIVES = [NgForOf, AsyncPipe];
+
+@Component({
+  selector: 'app-rich-document',
+  templateUrl: './rich-document.component.html',
+  styleUrls: ['./rich-document.component.scss'],
+  imports: [...COMPONENTS, ...DIRECTIVES, JsonPipe],
+  standalone: true
+})
+export class RichDocumentComponent {
+  readonly #blockStore = inject(BlockStore);
+
+  blocks = this.#blockStore.blocks;
+
+  onUpdateBlocks($event: EditorBlocks) {
+    this.#blockStore.setBlocks($event.blocks);
+  }
+}
+
+
+<h1>{{ title() }}</h1>
+<p>{{ description() }}</p>
+<p>Author: <b>{{ author() }}</b></p>
+
+import { Component, ChangeDetectionStrategy, input } from '@angular/core';
+
+@Component({
+  selector: 'app-header',
+  templateUrl: './header.component.html',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class HeaderComponent {
+  readonly title = input.required<string>();
+  readonly description = input.required<string>();
+  readonly author = input.required<string>();
+}
+
+<ng-container *ngIf="toolbarState$ | async as state">
+  <div
+    *ngIf="state?.show"
+    class="floating-toolbar"
+    [ngStyle]="{
+      top: state?.position?.top + 'px',
+      left: state?.position?.left + 'px'
+    }"
+  >
+    <!-- Text Formatting Tools -->
+    <div
+      *ngIf="state?.isTextSelection"
+      class="toolbar-group"
+    >
+      <button
+        class="toolbar-button"
+        (click)="handleAction('format', 'bold')"
+        aria-label="Bold text"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+          <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+        </svg>
+      </button>
+
+      <button
+        class="toolbar-button"
+        (click)="handleAction('format', 'italic')"
+        aria-label="Italicize text"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="19" y1="4" x2="10" y2="4"/>
+          <line x1="14" y1="20" x2="5" y2="20"/>
+          <line x1="15" y1="4" x2="9" y2="20"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Image Tools -->
+    <div
+      *ngIf="state?.isImageSelected"
+      class="toolbar-group"
+    >
+      <button
+        class="toolbar-button"
+        (click)="handleAction('image', 'options')"
+        aria-label="Image options"
+      >
+        Image Options
+      </button>
+    </div>
+
+    <!-- Code Block Tools -->
+    <div
+      *ngIf="state?.isCodeBlock"
+      class="toolbar-group"
+    >
+      <button
+        class="toolbar-button"
+        (click)="handleAction('code', 'theme')"
+        aria-label="Change code theme"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        Change Theme
+      </button>
+
+      <button
+        class="toolbar-button"
+        (click)="handleAction('code', 'copy')"
+        aria-label="Copy code"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+        </svg>
+        Copy
+      </button>
+    </div>
+  </div>
+</ng-container>
+
+.floating-toolbar {
+  position: fixed;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  z-index: 1000;
+  display: flex;
+  gap: 4px;
+  transition: all 0.1s ease;
+  border: 1px solid #e8ecef;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 4px;
+}
+
+.toolbar-button {
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #292d34;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background-color: #f0f3f5;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+import { Component, Output, EventEmitter, inject, Input } from '@angular/core';
+import { NgIf, AsyncPipe, NgStyle } from '@angular/common';
+import { ToolbarStateService } from './toolbar.service';
+import { ToolbarActionInput, ToolbarActionOutput, Position } from './toolbar.models';
+
+type ActionType = 'format' | 'image' | 'code';
+type ToolbarType = 'text' | 'img' | 'code' | '';
+
+@Component({
+  selector: 'app-toolbar',
+  templateUrl: './toolbar.component.html',
+  styleUrls: ['./toolbar.component.scss'],
+  imports: [NgIf, AsyncPipe, NgStyle],
+  standalone: true
+})
+export class ToolbarComponent {
+  @Output()
+  toolbarAction = new EventEmitter<ToolbarActionOutput>();
+
+  readonly #toolbarStateService = inject(ToolbarStateService);
+  readonly toolbarState$ = this.#toolbarStateService.state$;
+
+  private readonly toolbarMap: Record<ToolbarType, (position: Position) => void> = {
+    'text': (position: Position) => this.#toolbarStateService.showTextToolbar(position),
+    'img': (position: Position) => this.#toolbarStateService.showImageToolbar(position),
+    'code': (position: Position) => this.#toolbarStateService.showCodeToolbar(position),
+    '': () => {} // Default case for empty type
+  };
+
+  private readonly actionMap: Record<ActionType, (value: string) => void> = {
+    'format': (value: string) => this.toolbarAction.emit({ type: 'format', value }),
+    'image': (value: string) => {
+      console.log('Image options clicked:', value);
+      this.toolbarAction.emit({ type: 'image', value });
+    },
+    'code': (value: string) => console.log('Code options clicked:', value)
+  };
+
+  @Input()
+  set toolbarActionInput(action: ToolbarActionInput) {
+    if (!action?.type) return;
+
+    const handler = this.toolbarMap[action.type as ToolbarType];
+    if (handler) {
+      handler(action.position);
+    } else {
+      console.warn(`Unknown toolbar action type: ${action.type}`);
+    }
+  }
+
+  handleAction(type: string, value: string): void {
+    const handler = this.actionMap[type as ActionType];
+    if (handler) {
+      handler(value);
+    } else {
+      console.warn(`Unknown action type: ${type}`);
+    }
+  }
+}
+
+export interface ToolbarState {
+  show: boolean;
+  isTextSelection: boolean;
+  isImageSelected: boolean;
+  isCodeBlock: boolean;
+  position: Position;
+}
+
+export interface Position {
+  top: number;
+  left: number;
+}
+
+export interface ToolbarActionInput {
+  type: 'text' | 'img' | 'code' | '';
+  position: Position;
+}
+
+export interface ToolbarActionOutput {
+  type: string;
+  value: string;
+}
+
+import { Injectable, NgZone, inject } from '@angular/core';
+import { BehaviorSubject, fromEvent, filter } from 'rxjs';
+import { ToolbarState, Position } from './toolbar.models';
+
+
+export const EDITOR_SELECTORS = {
+  EDITABLE: '.editable-div',
+  TOOLBAR: '.floating-toolbar'
+} as const;
+
+
+const initialToolbarState: ToolbarState = {
+  show: false,
+  isTextSelection: false,
+  isImageSelected: false,
+  isCodeBlock: false,
+  position: { top: 0, left: 0 }
+};
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ToolbarStateService {
+  readonly #state = new BehaviorSubject<ToolbarState>(initialToolbarState);
+  readonly state$ = this.#state.asObservable();
+
+  readonly #ngZone = inject(NgZone);
+
+  constructor() {
+    this.#ngZone.runOutsideAngular(() => {
+      fromEvent<MouseEvent>(document, 'click')
+        .pipe(filter(event => !this.isClickInside(event.target as Element)))
+        .subscribe(() => {
+          this.#ngZone.run(() => {
+            this.#state.next(initialToolbarState);
+          });
+        });
+    });
+  }
+
+  private isClickInside(target: Element): boolean {
+    return Boolean(target.closest(EDITOR_SELECTORS.EDITABLE) || target.closest(EDITOR_SELECTORS.TOOLBAR));
+  }
+
+  showTextToolbar(position: Position) {
+    this.#state.next({
+      show: true,
+      isTextSelection: true,
+      isImageSelected: false,
+      isCodeBlock: false,
+      position
+    });
+  }
+
+  showImageToolbar(position: Position) {
+    this.#state.next({
+      show: true,
+      isTextSelection: false,
+      isImageSelected: true,
+      isCodeBlock: false,
+      position
+    });
+  }
+
+  showCodeToolbar(position: Position) {
+    this.#state.next({
+      show: true,
+      isTextSelection: false,
+      isImageSelected: false,
+      isCodeBlock: true,
+      position
+    });
+  }
+}
+
+import { Pipe, PipeTransform, Inject } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+
+@Pipe({ name: 'bypassHtml', standalone: true})
+export class BypassHtmlPipe implements PipeTransform  {
+  constructor(@Inject(DomSanitizer) private readonly sanitized: DomSanitizer) {}
+
+  transform(value: string | null): SafeHtml {
+    if (!value) {
+      return '';
+    }
+    return this.sanitized.bypassSecurityTrustHtml(value);
+  }
+}
+
+import {
+  AfterViewInit,
+  Directive,
+  ElementRef,
+  forwardRef,
+  HostListener,
+  Inject,
+  OnDestroy,
+  Renderer2
+} from '@angular/core';
+import {ControlValueAccessor, NG_VALUE_ACCESSOR} from '@angular/forms';
+
+@Directive({
+  standalone: true,
+  selector:
+    '[contenteditable][formControlName], [contenteditable][formControl], [contenteditable][ngModel]',
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => ContenteditableValueAccessorDirective),
+      multi: true,
+    },
+  ],
+})
+export class ContenteditableValueAccessorDirective
+  implements ControlValueAccessor, AfterViewInit, OnDestroy {
+  private onTouched = () => {};
+
+  private onChange = (_value: string) => {};
+
+  private observer!: MutationObserver;
+
+  constructor(
+    @Inject(ElementRef) private readonly elementRef: ElementRef<Element>,
+    @Inject(Renderer2) private readonly renderer: Renderer2,
+  ) {
+    this.renderer.setAttribute(
+      this.elementRef.nativeElement,
+      'contenteditable',
+      'true'
+    );
+  }
+
+  ngAfterViewInit() {
+    this.observer = new MutationObserver(() => {
+      this.onChange(this.elementRef.nativeElement.innerHTML);
+    });
+
+    this.observer.observe(this.elementRef.nativeElement, {
+      characterData: true,
+      childList: true,
+      subtree: true,
+    });
+  }
+
+  ngOnDestroy() {
+    this.observer.disconnect();
+  }
+
+  @HostListener('input')
+  onInput() {
+    this.observer.disconnect();
+    this.onChange(this.elementRef.nativeElement.innerHTML);
+  }
+
+  @HostListener('blur')
+  onBlur() {
+    this.onTouched();
+  }
+
+  writeValue(value: string) {
+    this.renderer.setProperty(
+      this.elementRef.nativeElement,
+      'innerHTML',
+      value || ''
+    );
+  }
+
+  registerOnChange(onChange: (value: string) => void) {
+    this.onChange = onChange;
+  }
+
+  registerOnTouched(onTouched: () => void) {
+    this.onTouched = onTouched;
+  }
+
+  setDisabledState(disabled: boolean): void {
+    this.renderer.setAttribute(
+      this.elementRef.nativeElement,
+      'contenteditable',
+      String(!disabled)
+    );
+  }
+}
+
+import { Injectable, inject, QueryList, ElementRef } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+import { DOCUMENT } from '@angular/common';
+import { ToolbarDimensions } from './dom.models';
+import { Position } from '../../ui/toolbar/toolbar.models';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class DomHelper {
+  readonly #document = inject(DOCUMENT);
+  readonly #focusState = new BehaviorSubject<any>(null);
+  readonly #pendingFocus = new BehaviorSubject<number | null>(null);
+  #editableDivRefs?: QueryList<ElementRef<HTMLDivElement>>;
+
+  setEditableDivRefs(refs: QueryList<ElementRef<HTMLDivElement>>): void {
+    this.#editableDivRefs = refs;
+  }
+
+  hasPendingFocus(): boolean {
+    return this.#pendingFocus.value !== null;
+  }
+
+  getPendingIndex(): number | null {
+    return this.#pendingFocus.value;
+  }
+
+  focusBlock(index: number, options: any = {}): boolean {
+    const element = this.getBlockElement(index);
+    if (!element) return false;
+
+    try {
+      const { position = 'end', scroll } = options;
+      element.focus();
+
+      if (position !== undefined) {
+        this.setSelection(element, position);
+      }
+
+      if (scroll) {
+        this.scrollIntoView(element);
+      }
+      this.#focusState.next({ position, index });
+      this.clearPending();
+
+      return true;
+    } catch (error) {
+      console.error('Focus operation failed:', error);
+      return false;
+    }
+  }
+
+  private scrollIntoView(element: HTMLElement): void {
+    const rect = this.getElementBounds(element);
+    const viewport = this.getViewportSize();
+
+    const isVisible =
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= viewport.height &&
+      rect.right <= viewport.width;
+
+    if (!isVisible) {
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest'
+      });
+    }
+  }
+
+  private getBlockElement(index: number): HTMLDivElement | null {
+    if (!this.#editableDivRefs || !this.isValidIndex(index)) return null;
+    return this.#editableDivRefs.get(index)?.nativeElement ?? null;
+  }
+
+  private isValidIndex(index: number): boolean {
+    return Boolean(
+      this.#editableDivRefs &&
+      Number.isInteger(index) &&
+      index >= 0 &&
+      index < this.#editableDivRefs.length
+    );
+  }
+
+  private clearPending(): void {
+    this.#pendingFocus.next(null);
+  }
+
+  getViewportSize() {
+    return {
+      width: window.innerWidth,
+      height: window.innerHeight
+    };
+  }
+
+  getElementBounds(element: HTMLElement): DOMRect {
+    return element.getBoundingClientRect();
+  }
+
+  setSelection(element: HTMLElement, position: 'start' | 'end' | number = 'end'): void {
+    const range = this.#document.createRange();
+    const selection = window.getSelection();
+
+    if (position === 'start') {
+      range.setStart(element, 0);
+      range.setEnd(element, 0);
+    } else if (position === 'end') {
+      range.selectNodeContents(element);
+      range.collapse(false);
+    } else {
+      range.setStart(element, Math.min(position, element.textContent?.length ?? 0));
+      range.collapse(true);
+    }
+
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }
+
+  private readonly toolbarConfig: ToolbarDimensions = {
+    width: 200,
+    height: 40,
+    padding: 16
+  };
+
+  adjustToolbarPosition(elementBounds: DOMRect): Position {
+    const viewport = this.getViewportSize();
+    const { width, height, padding } = this.toolbarConfig;
+
+    return {
+      left: this.calculateHorizontalPosition(elementBounds, width, padding, viewport.width),
+      top: this.calculateVerticalPosition(elementBounds, height, padding)
+    };
+  }
+
+  private calculateHorizontalPosition(
+    bounds: DOMRect,
+    toolbarWidth: number,
+    padding: number,
+    viewportWidth: number
+  ): number {
+    let position = bounds.left + (bounds.width / 2) - (toolbarWidth / 2);
+    const rightEdge = viewportWidth - toolbarWidth - padding;
+
+    return Math.max(padding, Math.min(position, rightEdge));
+  }
+
+  private calculateVerticalPosition(
+    bounds: DOMRect,
+    toolbarHeight: number,
+    padding: number
+  ): number {
+    const position = bounds.top - toolbarHeight - padding;
+    return position < padding ? bounds.bottom + padding : position;
+  }
+}
+
+export interface ToolbarDimensions {
+  width: number;
+  height: number;
+  padding: number;
+}
+
+import { Directive, EventEmitter, HostListener, Output, inject } from '@angular/core';
+import { SelectionService, SelectionInfo } from './selection.service';
+
+@Directive({
+  selector: '[appSelectionTracker]',
+  standalone: true,
+})
+export class SelectionTrackerDirective {
+  private readonly selectionService = inject(SelectionService);
+
+  @Output() selectionChange = new EventEmitter<SelectionInfo>();
+
+  @HostListener('mouseup', ['$event'])
+  onMouseUp(event: MouseEvent): void {
+    const selectionInfo = this.selectionService.handleTextSelection(event);
+    if (selectionInfo) {
+      this.selectionChange.emit(selectionInfo);
+    }
+  }
+
+  @HostListener('click', ['$event'])
+  onClick(event: MouseEvent): void {
+    const selectionInfo = this.selectionService.handleElementClick(event);
+    if (selectionInfo) {
+      this.selectionChange.emit(selectionInfo);
+    }
+  }
+}
+
+import { Injectable, inject } from '@angular/core';
+import { DomHelper } from './dom/dom-helper';
+
+export interface SelectionPosition {
+  top: number;
+  left: number;
+}
+
+export interface SelectionInfo {
+  type: 'text' | 'img' | 'code';
+  position: SelectionPosition;
+  content?: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class SelectionService {
+  private readonly domHelper = inject(DomHelper);
+
+  handleTextSelection(event: MouseEvent): SelectionInfo | null {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return null;
+
+    const selectedText = selection.toString().trim();
+    if (!selectedText) return null;
+
+    const rect = this.domHelper.getElementBounds(event.target as HTMLElement);
+    const position = this.domHelper.adjustToolbarPosition(rect);
+
+    return {
+      type: 'text',
+      position,
+      content: selectedText
+    };
+  }
+
+  handleElementClick(event: MouseEvent): SelectionInfo | null {
+    const target = event.target as HTMLElement;
+
+    // Handle image click
+    if (target.tagName.toLowerCase() === 'img') {
+      const rect = this.domHelper.getElementBounds(target);
+      const position = this.domHelper.adjustToolbarPosition(rect);
+      return {
+        type: 'img',
+        position,
+        content: target.getAttribute('src') || ''
+      };
+    }
+
+    // Handle code block click
+    const codeBlock = target.closest('pre code') || target.closest('pre');
+    // if (codeBlock) {
+    //   const rect = this.domHelper.getElementBounds(codeBlock);
+    //   const position = this.domHelper.adjustToolbarPosition(rect);
+    //   return {
+    //     type: 'code',
+    //     position,
+    //     content: codeBlock.textContent || ''
+    //   };
+    // }
+
+    // Handle inline code click
+    const inlineCode = target.closest('code');
+    if (inlineCode) {
+      const rect = this.domHelper.getElementBounds(inlineCode);
+      const position = this.domHelper.adjustToolbarPosition(rect);
+      return {
+        type: 'code',
+        position,
+        content: inlineCode.textContent || ''
+      };
+    }
+
+    return null;
+  }
+}
+

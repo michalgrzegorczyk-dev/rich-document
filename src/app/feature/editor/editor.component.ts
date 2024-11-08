@@ -119,29 +119,47 @@ export class EditorComponent implements AfterViewInit, OnInit {
 
     if (event.key === 'Backspace') {
       const target = event.target as HTMLElement;
-      const isEmpty = !target.textContent?.trim();
+      const selection = window.getSelection();
 
+      if (!selection?.rangeCount) return;
+      const range = selection.getRangeAt(0);
+
+      // Handle empty block case
+      const isEmpty = target.textContent?.trim() === '' && !target.querySelector('img');
       if (isEmpty && index > 0) {
         event.preventDefault();
-        const previousBlock = this.blocksFromArray.at(index - 1) as FormGroup;
-        const previousContent = previousBlock.get('content')?.value || '';
-
-        this.blocksFromArray.removeAt(index);
-        this.#focusInstruction.next({
-          index: index - 1,
-          cursorPosition: previousContent.length
-        });
+        this.removeEmptyBlock(index);
         return;
       }
 
-      const selection = window.getSelection();
-      const cursorAtStart = selection?.anchorOffset === 0 && selection?.isCollapsed;
-
-      if (cursorAtStart && !isEmpty && index > 0) {
+      // Handle merge case
+      const isAtStart = this.#editorService.isCursorAtStart(target, range);
+      if (isAtStart && index > 0) {
         event.preventDefault();
         this.mergeWithPreviousBlock(index);
         return;
       }
+    }
+  }
+
+  private removeEmptyBlock(index: number): void {
+    const previousIndex = index - 1;
+    if (previousIndex >= 0) {
+      const previousBlock = this.blocksFromArray.at(previousIndex) as FormGroup;
+      const previousContent = previousBlock.get('content')?.value || '';
+
+      // Create a temp element to get content length
+      const tempElement = document.createElement('div');
+      tempElement.innerHTML = previousContent;
+      const cursorPosition = tempElement.innerHTML.length;
+
+      this.blocksFromArray.removeAt(index);
+
+      // Focus previous block with cursor at the end
+      this.#focusInstruction.next({
+        index: previousIndex,
+        cursorPosition
+      });
     }
   }
 
@@ -159,6 +177,8 @@ export class EditorComponent implements AfterViewInit, OnInit {
     }
   }
 
+
+// In editor.component.ts
   private focusBlock(index: number, cursorPosition?: number): void {
     const blockComponent = this.blockRefs.get(index);
     if (!blockComponent) return;
@@ -170,25 +190,69 @@ export class EditorComponent implements AfterViewInit, OnInit {
       const selection = window.getSelection();
       const range = document.createRange();
 
-      // Find the text node and position
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-      let currentPos = 0;
-      let node = walker.nextNode();
-
-      while (node) {
-        const nodeLength = node.textContent?.length || 0;
-        if (currentPos + nodeLength >= cursorPosition) {
-          range.setStart(node, cursorPosition - currentPos);
-          range.setEnd(node, cursorPosition - currentPos);
-          selection?.removeAllRanges();
-          selection?.addRange(range);
-          break;
-        }
-        currentPos += nodeLength;
-        node = walker.nextNode();
+      if (cursorPosition >= element.innerHTML.length) {
+        range.selectNodeContents(element);
+        range.collapse(false);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        return;
       }
+
+      let currentPos = 0;
+      const walker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT
+      );
+
+      let currentNode: Node | null = walker.nextNode();
+      let found = false;
+
+      while (currentNode && !found) {
+        // Handle IMG elements
+        if (currentNode.nodeType === Node.ELEMENT_NODE && (currentNode as Element).tagName === 'IMG') {
+          if (currentPos === cursorPosition) {
+            const parentElement = currentNode.parentElement;
+            if (parentElement) {
+              // Convert NodeList to Array and use type assertion
+              const children = Array.from(parentElement.childNodes) as Node[];
+              const nodeIndex = children.findIndex(node => node === currentNode);
+              if (nodeIndex !== -1) {
+                range.setStart(parentElement, nodeIndex);
+                range.setEnd(parentElement, nodeIndex);
+                found = true;
+              }
+            }
+            break;
+          }
+          currentPos += (currentNode as Element).outerHTML.length;
+        }
+        // Handle text nodes
+        else if (currentNode.nodeType === Node.TEXT_NODE && currentNode.textContent) {
+          const length = currentNode.textContent.length;
+          if (currentPos + length >= cursorPosition) {
+            range.setStart(currentNode, cursorPosition - currentPos);
+            range.setEnd(currentNode, cursorPosition - currentPos);
+            found = true;
+            break;
+          }
+          currentPos += length;
+        }
+        currentNode = walker.nextNode();
+      }
+
+      // Default to end if position not found
+      if (!found) {
+        range.selectNodeContents(element);
+        range.collapse(false);
+      }
+
+      selection?.removeAllRanges();
+      selection?.addRange(range);
     }
   }
+
+
+
 
   mergeWithPreviousBlock(currentIndex: number): void {
     const currentBlock = this.blocksFromArray.at(currentIndex) as FormGroup;
@@ -196,18 +260,23 @@ export class EditorComponent implements AfterViewInit, OnInit {
 
     const currentContent = currentBlock.get('content')?.value || '';
     const previousContent = previousBlock.get('content')?.value || '';
+
+    // Set cursor position to end of previous content
     const cursorPosition = previousContent.length;
 
     // Merge contents
     previousBlock.patchValue({ content: previousContent + currentContent });
     this.blocksFromArray.removeAt(currentIndex);
 
-    // Set focus instruction
+    // Focus with cursor at merge point
     this.#focusInstruction.next({
       index: currentIndex - 1,
       cursorPosition
     });
   }
+
+
+
   removeBlock(index: number): void {
     const previousIndex = index - 1;
     if (previousIndex >= 0) {
