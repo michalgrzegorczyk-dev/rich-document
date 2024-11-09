@@ -4,7 +4,8 @@ import { EditorComponent } from '../editor/editor.component';
 import { HeaderComponent } from '../../ui/header/header.component';
 import { ToolbarComponent } from '../../ui/toolbar/toolbar.component';
 import { BlockStore } from '../../data-access/block.store';
-import { EditorBlocks } from '../editor/editor.models';
+import { EditorBlocks } from '../editor/models/editor.models';
+import { EditorService } from '../editor/editor.service';
 
 const COMPONENTS = [HeaderComponent, ToolbarComponent, EditorComponent, EditorComponent];
 const DIRECTIVES = [NgForOf, AsyncPipe];
@@ -19,9 +20,12 @@ const DIRECTIVES = [NgForOf, AsyncPipe];
 export class RichDocumentComponent {
   readonly #blockStore = inject(BlockStore);
 
+  editorService = inject(EditorService);
+
   blocks = this.#blockStore.blocks;
 
   onUpdateBlocks($event: EditorBlocks) {
+    console.log('RichDocumentComponent.onUpdateBlocks', $event);
     this.#blockStore.setBlocks($event.blocks);
   }
 }

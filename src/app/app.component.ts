@@ -6,12 +6,6 @@ import { RichDocumentComponent } from './feature/rich-document/rich-document.com
   imports: [RichDocumentComponent],
   selector: 'app-root',
   template: '<app-rich-document />',
-  styles: [`
-      :host {
-          padding: 50px;
-          display: block;
-      }
-  `]
 })
 export class AppComponent {
 }

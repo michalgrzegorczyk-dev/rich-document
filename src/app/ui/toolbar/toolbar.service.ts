@@ -1,74 +1,63 @@
-import { Injectable, NgZone, inject } from '@angular/core';
-import { BehaviorSubject, fromEvent, filter } from 'rxjs';
-import { ToolbarState, Position } from './toolbar.models';
-
-
-export const EDITOR_SELECTORS = {
-  EDITABLE: '.editable-div',
-  TOOLBAR: '.floating-toolbar'
-} as const;
-
-
-const initialToolbarState: ToolbarState = {
-  show: false,
-  isTextSelection: false,
-  isImageSelected: false,
-  isCodeBlock: false,
-  position: { top: 0, left: 0 }
-};
+import { Injectable, ComponentRef, EnvironmentInjector, ViewContainerRef, inject } from '@angular/core';
+import { ToolbarType } from './toolbar.models';
+import { TextToolbarComponent } from './components/text-toolbar/text-toolbar.component';
+import { Subject } from 'rxjs';
+import { ImageToolbarComponent } from './components/image-toolbar/image-toolbar.component';
+import { BaseToolbarDirective } from './components/base-toolbar.directive';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ToolbarStateService {
-  readonly #state = new BehaviorSubject<ToolbarState>(initialToolbarState);
-  readonly state$ = this.#state.asObservable();
+  private currentToolbar?: ComponentRef<any>;
+  private toolbarHost?: ViewContainerRef;
 
-  readonly #ngZone = inject(NgZone);
+  private toolbarMap: any = {
+    'text': TextToolbarComponent,
+    'image': ImageToolbarComponent
+  } as const;
 
-  constructor() {
-    this.#ngZone.runOutsideAngular(() => {
-      fromEvent<MouseEvent>(document, 'click')
-        .pipe(filter(event => !this.isClickInside(event.target as Element)))
-        .subscribe(() => {
-          this.#ngZone.run(() => {
-            this.#state.next(initialToolbarState);
-          });
-        });
+  injector = inject(EnvironmentInjector);
+
+  actionChanged$ = new Subject<{ type: string, value: string; blockId: string }>();
+
+
+  showToolbar(type: ToolbarType, blockId: string) {
+    console.log('toolbar block Id, ', blockId);
+    if (!this.toolbarHost) {
+      throw new Error('Toolbar host not set');
+    }
+
+    this.clearToolbar();
+
+    const componentType = this.toolbarMap[type];
+    if (!componentType) {
+      throw new Error(`No toolbar component found for type: ${type}`);
+    }
+
+    this.currentToolbar = this.toolbarHost.createComponent(componentType, {
+      injector: this.injector
     });
-  }
 
-  private isClickInside(target: Element): boolean {
-    return Boolean(target.closest(EDITOR_SELECTORS.EDITABLE) || target.closest(EDITOR_SELECTORS.TOOLBAR));
-  }
+    const toolbarInstance = this.currentToolbar.instance as BaseToolbarDirective;
 
-  showTextToolbar(position: Position) {
-    this.#state.next({
-      show: true,
-      isTextSelection: true,
-      isImageSelected: false,
-      isCodeBlock: false,
-      position
+    toolbarInstance.action.subscribe((action: string) => {
+      this.actionChanged$.next({ type, value: action, blockId});
     });
+
+
+    this.currentToolbar.changeDetectorRef.detectChanges();
   }
 
-  showImageToolbar(position: Position) {
-    this.#state.next({
-      show: true,
-      isTextSelection: false,
-      isImageSelected: true,
-      isCodeBlock: false,
-      position
-    });
+  clearToolbar() {
+    if (this.toolbarHost) {
+      this.toolbarHost.clear();
+    }
+    this.currentToolbar = undefined;
   }
 
-  showCodeToolbar(position: Position) {
-    this.#state.next({
-      show: true,
-      isTextSelection: false,
-      isImageSelected: false,
-      isCodeBlock: true,
-      position
-    });
+  setHost(viewContainerRef: ViewContainerRef) {
+    this.toolbarHost = viewContainerRef;
   }
+
 }

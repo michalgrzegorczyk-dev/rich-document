@@ -1,7 +1,4 @@
-<app-toolbar
-  [toolbarActionInput]="toolbarAction()"
-  (toolbarAction)="onToolbarAction($event)"
-/>
+<app-toolbar />
 
 <form [formGroup]="formGroup" class="editable-container">
   <div formArrayName="blocks">
@@ -9,7 +6,6 @@
       <app-editor-block
         [blockForm]="$any(control)"
         [index]="i"
-        (blockEvent)="onBlockEvent($event)"
       />
     }
   </div>

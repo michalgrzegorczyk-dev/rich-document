@@ -1,0 +1,12 @@
+<div [formGroup]="blockForm" class="block-container">
+  <div class="hash"></div>
+  <div #editableDiv
+       formControlName="content"
+       (keydown)="onKeydown($event)"
+       (click)="onClick($event)"
+       contenteditable
+       data-placeholder="Type something..."
+       class="editable-div"
+       [style.white-space]="'pre-wrap'">
+  </div>
+</div>

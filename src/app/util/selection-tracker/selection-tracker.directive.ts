@@ -1,12 +1,12 @@
 import { Directive, EventEmitter, HostListener, Output, inject } from '@angular/core';
-import { SelectionService, SelectionInfo } from './selection.service';
+import { SelectionTrackerService, SelectionInfo } from './selection-tracker.service';
 
 @Directive({
   selector: '[appSelectionTracker]',
   standalone: true,
 })
 export class SelectionTrackerDirective {
-  private readonly selectionService = inject(SelectionService);
+  private readonly selectionService = inject(SelectionTrackerService);
 
   @Output() selectionChange = new EventEmitter<SelectionInfo>();
 

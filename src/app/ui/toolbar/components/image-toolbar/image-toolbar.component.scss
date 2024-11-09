@@ -1,0 +1,27 @@
+.toolbar {
+  display: flex;
+  gap: 4px;
+}
+
+button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #4b5563;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+button:hover {
+  background: #f3f4f6;
+}
+
+button:active {
+  background: #e5e7eb;
+}

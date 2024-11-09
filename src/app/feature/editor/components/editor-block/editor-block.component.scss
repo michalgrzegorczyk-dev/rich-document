@@ -1,0 +1,40 @@
+:host {
+  display: block;
+}
+
+.block-container {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+}
+
+.hash {
+  position: absolute;
+  left: -26px;
+  color: #666;
+  cursor: move;
+  display: flex;
+  align-items: center;
+}
+
+.hash::before {
+  content: "⋮⋮";
+  font-size: 16px;
+  color: #666;
+  transform: rotate(90deg);
+}
+
+.editable-div {
+  flex: 1;
+  min-height: 24px;
+  padding: 0px;
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+
+  &[data-placeholder]:empty:before {
+    content: attr(data-placeholder);
+    color: #999;
+    pointer-events: none;
+  }
+}

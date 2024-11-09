@@ -1,23 +1,50 @@
 html {
-  font-family: system-ui;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 
 html, body {
-  margin:0;
+  margin: 0;
+  min-height: 100vh;
+  overflow-y: auto;
+  background-color: #f8fafc;
+  color: #1b2432;
 }
 
+app-root {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  max-width: 1200px;
+  margin: 0 auto; /* Center content */
+}
+
+/* Typography */
 h1 {
-  font-size: 40px;
-  font-weight: 700;
-  color: #292d34;
-  margin: 0 0 24px 0;
+  font-size: 32px;
+  font-weight: 600;
+  color: #1b2432;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
 p {
-  font-size: 16px;
-  color: #292d34;
+  font-size: 15px;
+  color: #4a5568;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
 }
 
+/* Code blocks */
 .code-block {
-  background: red;
+  background: #f7f9fc;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 16px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
 }

@@ -1,10 +1,18 @@
 :host {
-  display: block;
-  padding: 20px;
-  border: 1px solid #ccc;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  padding: 40px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
 }
 
 app-header {
   display: block;
-  margin-bottom: 60px;
+  margin-bottom: 48px;
+  padding: 0 0 24px 0;
+  border-bottom: 1px solid #e5e7eb;
 }

@@ -1,6 +1,4 @@
-import { Injectable, inject, QueryList, ElementRef } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
-import { DOCUMENT } from '@angular/common';
+import { Injectable } from '@angular/core';
 import { ToolbarDimensions } from './dom.models';
 import { Position } from '../../ui/toolbar/toolbar.models';
 
@@ -8,84 +6,6 @@ import { Position } from '../../ui/toolbar/toolbar.models';
   providedIn: 'root'
 })
 export class DomHelper {
-  readonly #document = inject(DOCUMENT);
-  readonly #focusState = new BehaviorSubject<any>(null);
-  readonly #pendingFocus = new BehaviorSubject<number | null>(null);
-  #editableDivRefs?: QueryList<ElementRef<HTMLDivElement>>;
-
-  setEditableDivRefs(refs: QueryList<ElementRef<HTMLDivElement>>): void {
-    this.#editableDivRefs = refs;
-  }
-
-  hasPendingFocus(): boolean {
-    return this.#pendingFocus.value !== null;
-  }
-
-  getPendingIndex(): number | null {
-    return this.#pendingFocus.value;
-  }
-
-  focusBlock(index: number, options: any = {}): boolean {
-    const element = this.getBlockElement(index);
-    if (!element) return false;
-
-    try {
-      const { position = 'end', scroll } = options;
-      element.focus();
-
-      if (position !== undefined) {
-        this.setSelection(element, position);
-      }
-
-      if (scroll) {
-        this.scrollIntoView(element);
-      }
-      this.#focusState.next({ position, index });
-      this.clearPending();
-
-      return true;
-    } catch (error) {
-      console.error('Focus operation failed:', error);
-      return false;
-    }
-  }
-
-  private scrollIntoView(element: HTMLElement): void {
-    const rect = this.getElementBounds(element);
-    const viewport = this.getViewportSize();
-
-    const isVisible =
-      rect.top >= 0 &&
-      rect.left >= 0 &&
-      rect.bottom <= viewport.height &&
-      rect.right <= viewport.width;
-
-    if (!isVisible) {
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'nearest'
-      });
-    }
-  }
-
-  private getBlockElement(index: number): HTMLDivElement | null {
-    if (!this.#editableDivRefs || !this.isValidIndex(index)) return null;
-    return this.#editableDivRefs.get(index)?.nativeElement ?? null;
-  }
-
-  private isValidIndex(index: number): boolean {
-    return Boolean(
-      this.#editableDivRefs &&
-      Number.isInteger(index) &&
-      index >= 0 &&
-      index < this.#editableDivRefs.length
-    );
-  }
-
-  private clearPending(): void {
-    this.#pendingFocus.next(null);
-  }
 
   getViewportSize() {
     return {
@@ -97,26 +17,6 @@ export class DomHelper {
   getElementBounds(element: HTMLElement): DOMRect {
     return element.getBoundingClientRect();
   }
-
-  setSelection(element: HTMLElement, position: 'start' | 'end' | number = 'end'): void {
-    const range = this.#document.createRange();
-    const selection = window.getSelection();
-
-    if (position === 'start') {
-      range.setStart(element, 0);
-      range.setEnd(element, 0);
-    } else if (position === 'end') {
-      range.selectNodeContents(element);
-      range.collapse(false);
-    } else {
-      range.setStart(element, Math.min(position, element.textContent?.length ?? 0));
-      range.collapse(true);
-    }
-
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-  }
-
   private readonly toolbarConfig: ToolbarDimensions = {
     width: 200,
     height: 40,

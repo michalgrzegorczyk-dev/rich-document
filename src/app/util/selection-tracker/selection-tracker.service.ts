@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { DomHelper } from './dom/dom-helper';
+import { DomHelper } from '../dom/dom-helper';
 
 export interface SelectionPosition {
   top: number;
@@ -15,7 +15,7 @@ export interface SelectionInfo {
 @Injectable({
   providedIn: 'root'
 })
-export class SelectionService {
+export class SelectionTrackerService {
   private readonly domHelper = inject(DomHelper);
 
   handleTextSelection(event: MouseEvent): SelectionInfo | null {

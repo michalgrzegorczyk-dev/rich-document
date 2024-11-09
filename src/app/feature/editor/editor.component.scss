@@ -1,114 +1,15 @@
-.xxx {
-  background-color: white;
-  height: 100px;
+:host {
+  display: block;
   width: 100%;
+  flex: 1;
+  box-sizing: border-box;
+  background: white;
+  border-radius: 8px;
 }
-
 
 .editable-container {
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.editable-div {
-  position: relative;
-  min-height: 28px;
-  padding: 0px 0px;
-  border-radius: 4px;
-  font-size: 16px;
-  line-height: 1.5;
-  color: #292d34;
-  transition: all 0.15s ease;
-  cursor: text;
-  white-space: pre-wrap;
-  word-break: break-word;
-
-
-  &:focus {
-    outline: none;
-    background-color: transparent;
-    box-shadow: none;
-  }
-
-  &:empty::before {
-    content: "Write something or type '/' for commands.";
-    color: #9ca6af;
-    position: absolute;
-    pointer-events: none;
-  }
-
-  img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-
-    &:hover {
-      box-shadow: 0 0 0 2px rgba(55, 125, 255, 0.2);
-    }
-
-    &.selected {
-      box-shadow: 0 0 0 2px #377dff, 0 4px 12px rgba(55, 125, 255, 0.15);
-    }
-  }
-
-  pre.code-block {
-    background: #f6f8fa;
-    border-radius: 6px;
-    padding: 16px;
-    margin: 8px 0;
-    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
-    font-size: 14px;
-    line-height: 1.45;
-    overflow-x: auto;
-    cursor: text;
-
-    &:hover {
-      background: #f0f3f5;
-    }
-
-    &.selected {
-      box-shadow: 0 0 0 2px #377dff, 0 4px 12px rgba(55, 125, 255, 0.15);
-    }
-
-    code {
-      display: block;
-      color: #24292e;
-      tab-size: 2;
-    }
-  }
-}
-
-.ez2 {
-  visibility: hidden;
-}
-
-.ez1:hover {
-  .ez2 {
-    visibility: visible;
-  }
-}
-
-
-.block-container {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-  position: relative;
-}
-
-.hash {
-  position: absolute;
-  left: -24px;
-  color: #666;
-}
-
-.editable-div {
-  flex: 1;
-  min-height: 24px;
-  padding: 8px;
-  border: 1px solid #ddd;
-  outline: none;
+  gap: 8px; /* Space between blocks */
 }

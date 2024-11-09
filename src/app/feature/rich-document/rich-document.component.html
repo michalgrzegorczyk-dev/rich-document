@@ -1,2 +1,8 @@
+<div>
+  <p>currently edited block: <b>{{ editorService.currentBlockId().blockId }}</b></p>
+</div
+
+
+>
 <app-header title="Interview Prep" description="Study notes for my next job interviews. Things I learned from mock interviews, coding challenges I solved, and questions that surprised me. Also jotting down what to say when they ask about my past projects and future goals." author="Michal Grzegorczyk" />
 <app-editor [editorBlocks]="blocks()" (editorBlocksChange)="onUpdateBlocks($event)" />

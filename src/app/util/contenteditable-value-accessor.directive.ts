@@ -6,29 +6,26 @@ import {
   HostListener,
   Inject,
   OnDestroy,
-  Renderer2
+  Renderer2,
+  inject
 } from '@angular/core';
-import {ControlValueAccessor, NG_VALUE_ACCESSOR} from '@angular/forms';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { EditorService } from '../feature/editor/editor.service';
 
 @Directive({
   standalone: true,
-  selector:
-    '[contenteditable][formControlName], [contenteditable][formControl], [contenteditable][ngModel]',
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => ContenteditableValueAccessorDirective),
-      multi: true,
-    },
-  ],
+  selector: '[contenteditable][formControlName], [contenteditable][formControl], [contenteditable][ngModel]',
+  providers: [{
+    provide: NG_VALUE_ACCESSOR,
+    useExisting: forwardRef(() => ContenteditableValueAccessorDirective),
+    multi: true,
+  }],
 })
-export class ContenteditableValueAccessorDirective
-  implements ControlValueAccessor, AfterViewInit, OnDestroy {
+export class ContenteditableValueAccessorDirective implements ControlValueAccessor, AfterViewInit, OnDestroy {
   private onTouched = () => {};
-
   private onChange = (_value: string) => {};
-
   private observer!: MutationObserver;
+  private readonly editorService = inject(EditorService);
 
   constructor(
     @Inject(ElementRef) private readonly elementRef: ElementRef<Element>,
@@ -42,8 +39,27 @@ export class ContenteditableValueAccessorDirective
   }
 
   ngAfterViewInit() {
+    this.setupObserver();
+  }
+
+  ngOnDestroy() {
+    this.observer.disconnect();
+  }
+
+  private cleanAndNotify() {
+    const html = this.elementRef.nativeElement.innerHTML;
+    const cleanHtml = this.editorService.cleanHtml(html);
+
+    if (cleanHtml !== html) {
+      this.renderer.setProperty(this.elementRef.nativeElement, 'innerHTML', cleanHtml);
+    }
+
+    this.onChange(cleanHtml);
+  }
+
+  private setupObserver() {
     this.observer = new MutationObserver(() => {
-      this.onChange(this.elementRef.nativeElement.innerHTML);
+      this.cleanAndNotify();
     });
 
     this.observer.observe(this.elementRef.nativeElement, {
@@ -53,14 +69,11 @@ export class ContenteditableValueAccessorDirective
     });
   }
 
-  ngOnDestroy() {
-    this.observer.disconnect();
-  }
-
   @HostListener('input')
   onInput() {
     this.observer.disconnect();
-    this.onChange(this.elementRef.nativeElement.innerHTML);
+    this.cleanAndNotify();
+    this.setupObserver();
   }
 
   @HostListener('blur')
@@ -69,10 +82,11 @@ export class ContenteditableValueAccessorDirective
   }
 
   writeValue(value: string) {
+    const cleanValue = this.editorService.cleanHtml(value || '');
     this.renderer.setProperty(
       this.elementRef.nativeElement,
       'innerHTML',
-      value || ''
+      cleanValue
     );
   }
 
