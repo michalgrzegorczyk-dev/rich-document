@@ -10,22 +10,17 @@ export class BlockStore {
 
   constructor() {
     const blocks = localStorage.getItem('blocks');
-    // this.blocks.set([{
-    //   id: '1',
-    //   content: 'Hello, World!'
-    // }]);
     if (blocks) {
       this.blocks.set(JSON.parse(blocks));
     }
   }
 
   setBlocks(blocks: any) {
-    // Only generate IDs for new blocks that don't have one
     const validatedBlocks:any = blocks.map((block:any) => {
       if (!block.id) {
         return {
           ...block,
-          id: generateRandomStringId()
+          id: generateRandomStringId(),
         };
       }
       return block;

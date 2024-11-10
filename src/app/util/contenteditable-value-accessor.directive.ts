@@ -7,7 +7,7 @@ import {
   Inject,
   OnDestroy,
   Renderer2,
-  inject
+  inject, Input
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { EditorService } from '../feature/editor/editor.service';
@@ -27,15 +27,24 @@ export class ContenteditableValueAccessorDirective implements ControlValueAccess
   private observer!: MutationObserver;
   private readonly editorService = inject(EditorService);
 
+  @Input()
+  set contenteditable(value: string) {
+    this.renderer.setAttribute(
+      this.elementRef.nativeElement,
+      'contenteditable',
+      String(value)
+    );
+  }
+
   constructor(
     @Inject(ElementRef) private readonly elementRef: ElementRef<Element>,
     @Inject(Renderer2) private readonly renderer: Renderer2,
   ) {
-    this.renderer.setAttribute(
-      this.elementRef.nativeElement,
-      'contenteditable',
-      'true'
-    );
+    // this.renderer.setAttribute(
+    //   this.elementRef.nativeElement,
+    //   'contenteditable',
+    //   'true'
+    // );
   }
 
   ngAfterViewInit() {
@@ -98,11 +107,4 @@ export class ContenteditableValueAccessorDirective implements ControlValueAccess
     this.onTouched = onTouched;
   }
 
-  setDisabledState(disabled: boolean): void {
-    this.renderer.setAttribute(
-      this.elementRef.nativeElement,
-      'contenteditable',
-      String(!disabled)
-    );
-  }
 }

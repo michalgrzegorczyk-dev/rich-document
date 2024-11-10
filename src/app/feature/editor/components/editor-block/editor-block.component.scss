@@ -1,5 +1,6 @@
 :host {
   display: block;
+  //border-bottom: 2px solid goldenrod;
 }
 
 .block-container {
@@ -32,9 +33,18 @@
   white-space: pre-wrap;
   word-wrap: break-word;
 
+  &:hover {
+    background: #e5e7eb;
+  }
+
   &[data-placeholder]:empty:before {
     content: attr(data-placeholder);
     color: #999;
     pointer-events: none;
   }
 }
+
+//
+//.editable-div.remove-cursor {
+//  caret-color: transparent;
+//}

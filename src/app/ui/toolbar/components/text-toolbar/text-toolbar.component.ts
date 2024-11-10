@@ -6,11 +6,24 @@ import { BaseToolbarDirective } from '../base-toolbar.directive';
   standalone: true,
   template: `
     <div class="toolbar">
+      <button (click)="onH1()">
+        <strong>H1</strong>
+      </button>
+      <button (click)="onH2()">
+        <strong>H2</strong>
+      </button>
+      <button (click)="onH3()">
+        <strong>H3</strong>
+      </button>
+      <button (click)="onP()">
+        <strong>P</strong>
+      </button>
+
       <button (click)="onBold()">
-        <strong>B</strong>
+        <strong>Bold</strong>
       </button>
       <button (click)="onItalic()">
-        <em>I</em>
+        <em>Italic</em>
       </button>
     </div>
   `,
@@ -24,5 +37,21 @@ export class TextToolbarComponent extends BaseToolbarDirective {
 
   onItalic() {
     this.action.emit('italic');
+  }
+
+  onH1() {
+    this.action.emit('h1');
+  }
+
+  onH2() {
+    this.action.emit('h2');
+  }
+
+  onH3() {
+    this.action.emit('h3');
+  }
+
+  onP() {
+    this.action.emit('p');
   }
 }

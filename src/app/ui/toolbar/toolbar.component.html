@@ -1,4 +1,6 @@
-<div #toolbarWrapper class="toolbar-wrapper">
+<div #toolbarWrapper class="toolbar-wrapper"
+     [ngStyle]="position$ | async"
+     [style.display]="(isVisible$ | async) ? 'block' : 'none'">
   <div class="tooltip">
     <ng-container #toolbarHost></ng-container>
   </div>

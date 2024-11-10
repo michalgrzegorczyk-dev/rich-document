@@ -4,7 +4,7 @@
   <div formArrayName="blocks">
     @for (control of blocksFromArray.controls; track i; let i = $index) {
       <app-editor-block
-        [blockForm]="$any(control)"
+        [blockGroupForm]="$any(control)"
         [index]="i"
       />
     }

@@ -13,7 +13,6 @@ export class EditorService {
   });
 
   currentBlockId = signal({ blockId: '' });
-  currentImageId = signal({ imageId: '' });
 
 
   readonly focusInstruction = new BehaviorSubject<FocusInstruction | null>(null);
@@ -29,27 +28,35 @@ export class EditorService {
   }
 
   setCurrentBlockId(blockId: string) {
-    console.log('blockId', blockId);
+
     this.currentBlockId.set({ blockId });
   }
 
-  setCurrentImageId(imageId: string) {
-    this.currentImageId.set({ imageId });
-  }
 
   initializeForm(blocks: any[]): void {
     const blocksArray = this.getBlocksArray();
     blocks.forEach(block =>
       blocksArray.push(this.#fb.group({
         content: [block.content],
-        blockId: [block.id]
+        blockId: [block.id],
+        blockType: [block.blockType]
       }))
     );
   }
 
   removeEmptyBlock(index: number): void {
     const previousIndex = index - 1;
-    if (previousIndex >= 0) {
+
+    if (previousIndex === -1) {
+      this.getBlocksArray().removeAt(0);
+      this.getBlocksArray().insert(0, this.#fb.group({
+        content: [''],
+        blockId: [generateRandomStringId()],
+        blockType: ['text']
+      }));
+      }
+
+    else if (previousIndex >= 0) {
       const previousBlock = this.getBlocksArray().at(previousIndex);
       const cursorPosition = (previousBlock.get('content')?.value || '').length;
 
@@ -92,25 +99,22 @@ export class EditorService {
     return temp.innerHTML;
   }
 
-  mapToEditorBlocks(value: any): any {
-    return {
-      blocks: value.blocks.map((block: any) => ({
-        content: this.cleanHtml(block.content),
-        id: block.blockId || block.id
-      }))
-    };
-  }
-
   splitBlock(element: HTMLElement, index: number): void {
+    console.log('enter');
     const selection = window.getSelection();
     if (!selection?.rangeCount || !element.contains(selection.getRangeAt(0).startContainer)) return;
+    console.log('enter2');
 
     const [beforeHtml, afterHtml] = this.splitContent(element, selection.getRangeAt(0));
     const currentBlock = this.getBlocksArray().at(index) as FormGroup;
 
     currentBlock.patchValue({ content: beforeHtml });
     const newBlockId = generateRandomStringId();
-    this.getBlocksArray().insert(index + 1, this.#fb.group({ content: [afterHtml], blockId: [newBlockId] }));
+    this.getBlocksArray().insert(index + 1, this.#fb.group({
+      content: [afterHtml],
+      blockId: [newBlockId],
+      blockType: ['text']
+    }));
     this.setCurrentBlockId(newBlockId);
     this.focusInstruction.next({ index: index + 1 });
   }
@@ -232,5 +236,76 @@ export class EditorService {
       index: currentIndex - 1,
       cursorPosition
     });
+  }
+
+  moveFocusDown(index: number): void {
+    const blocksArray = this.getBlocksArray();
+    const nextIndex = index + 1;
+
+    if (nextIndex < blocksArray.length) {
+      const nextBlock = blocksArray.at(nextIndex);
+      const nextBlockId = nextBlock.get('blockId')?.value;
+      const nextContent = nextBlock.get('content')?.value || '';
+
+      if (nextBlockId) {
+        this.setCurrentBlockId(nextBlockId);
+      }
+
+      this.focusInstruction.next({
+        index: nextIndex,
+        cursorPosition: nextContent.length // Place cursor at the end of the next block
+      });
+    }
+  }
+
+
+  moveFocusUp(index: number) {
+    const blocksArray = this.getBlocksArray();
+    const previousIndex = index - 1;
+
+    if (previousIndex >= 0) {
+      const previousBlock = blocksArray.at(previousIndex);
+      const previousBlockId = previousBlock.get('blockId')?.value;
+      const previousContent = previousBlock.get('content')?.value || '';
+
+      if (previousBlockId) {
+        this.setCurrentBlockId(previousBlockId);
+      }
+
+      this.focusInstruction.next({
+        index: previousIndex,
+        cursorPosition: previousContent.length // Always place cursor at the end
+      });
+    }
+  }
+
+
+  moveLeft(target: HTMLElement) {
+    const selection = window.getSelection();
+
+    // console.log('move left');
+    // console.log(selection);
+  }
+
+
+  createImageBlock(content: string, blockId: string): FormGroup {
+    return this.#fb.group({
+      content: [content],
+      contentEditable: [false],
+      blockId: [blockId],
+      blockType: ['image']
+    });
+  }
+
+  currentTarget = signal<{target: any}>({ target: null });
+  setCurrentEditedBlock(target: any) {
+      this.currentTarget.set({ target });
+  }
+
+  clearPreviousHighlight() {
+    if (this.currentTarget().target) {
+      this.currentTarget().target.style = {};
+
+    }
   }
 }

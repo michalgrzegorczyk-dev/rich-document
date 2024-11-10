@@ -1,7 +1,5 @@
 import {
   Component,
-  Output,
-  EventEmitter,
   AfterViewInit,
   OnDestroy,
   ViewContainerRef,
@@ -10,7 +8,7 @@ import {
   ElementRef, inject
 } from '@angular/core';
 import { NgIf, AsyncPipe, NgStyle } from '@angular/common';
-import { ToolbarStateService } from './toolbar.service';
+import { ToolbarService } from './toolbar.service';
 
 @Component({
   selector: 'app-toolbar',
@@ -20,11 +18,9 @@ import { ToolbarStateService } from './toolbar.service';
   imports: [NgIf, AsyncPipe, NgStyle]
 })
 export class ToolbarComponent implements AfterViewInit, OnDestroy {
+
   @ViewChild('toolbarHost', { read: ViewContainerRef })
   toolbarHost!: ViewContainerRef;
-
-  @ViewChild('toolbarWrapper')
-  toolbarWrapper!: ElementRef;
 
   @HostListener('document:mousedown', ['$event'])
   onClickOutside(event: MouseEvent) {
@@ -33,8 +29,11 @@ export class ToolbarComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  readonly toolbarService = inject(ToolbarStateService);
+  readonly toolbarService = inject(ToolbarService);
+  position$ = this.toolbarService.position$;
   readonly elementRef = inject(ElementRef);
+  isVisible$ = this.toolbarService.isVisible$;
+
 
   ngAfterViewInit(): void {
     this.toolbarService.setHost(this.toolbarHost);

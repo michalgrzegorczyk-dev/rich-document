@@ -1,12 +1,30 @@
-<div [formGroup]="blockForm" class="block-container">
+<!--<app-toolbar />-->
+
+<!--<app-tooltip-wrapper></app-tooltip-wrapper>-->
+
+<div [formGroup]="blockGroupForm" class="block-container" [id]="blockGroupForm.value.blockId">
   <div class="hash"></div>
   <div #editableDiv
        formControlName="content"
        (keydown)="onKeydown($event)"
        (click)="onClick($event)"
-       contenteditable
+       (paste)="onPaste($event)"
+       contenteditable="true"
        data-placeholder="Type something..."
+       [class.remove-cursor]="isId() && blockGroupForm.value.blockType === 'image'"
        class="editable-div"
-       [style.white-space]="'pre-wrap'">
+       [style.white-space]="'pre-wrap'"
+       [ngStyle]="{
+      'background-color': this.isId() ? 'rgb(126, 226, 226)' : '',
+      'transition': 'background-color 0.3s'
+    }"
+  >
   </div>
 </div>
+
+<!--<pre>-->
+<!--content: {{ blockGroupForm.value.content }}-->
+<!--blockId: {{ blockGroupForm.value.blockId }}-->
+<!--blockType: {{ blockGroupForm.value.blockType }}-->
+<!--isId: {{ isId() }}-->
+<!--</pre>-->

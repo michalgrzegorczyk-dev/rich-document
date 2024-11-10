@@ -20,7 +20,6 @@ app-root {
   margin: 0 auto; /* Center content */
 }
 
-/* Typography */
 h1 {
   font-size: 32px;
   font-weight: 600;
@@ -30,11 +29,29 @@ h1 {
   line-height: 1.2;
 }
 
+h2 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1b2432;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1b2432;
+    margin: 0 0 16px 0;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+
+}
+
 p {
   font-size: 15px;
   color: #4a5568;
   line-height: 1.6;
-  margin: 0 0 16px 0;
+  margin: 0 0 0px 0;
 }
 
 /* Code blocks */
@@ -47,4 +64,28 @@ p {
   font-size: 14px;
   line-height: 1.5;
   color: #374151;
+}
+
+// styles.scss
+.block-popup {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 8px;
+  z-index: 1000;
+}
+
+.popup-option {
+  display: block;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: #f5f5f5;
+  }
 }
