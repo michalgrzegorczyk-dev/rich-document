@@ -128,7 +128,6 @@ export class EditorBlockComponent {
       wrapper.appendChild(img);
 
       // Insert new block with the image
-      console.log('przed')
       if(!isEmpty){
         console.log('NOT EMPTY')
         blocksArray.insert(newIndex, this.#editorService.createImageBlock(wrapper.innerHTML, newBlockId));
